@@ -18,6 +18,11 @@ A Cloudflare Worker (free plan) that is the one place packs are collected:
   network's row only if its average is close to our profile of that character and closer than to any other
   (`nightly.VOICE_ACCEPT`), counts one network as at most 50 clips, and publishes `voices-pool-<game>`. The app
   uses, per character, the profile with more clips (its own or a shared one), never their sum.
+- **Clip vectors (our PCs only):** the main PC (where the voice model runs) sends, for every saved voice clip, the
+  voice vectors of the long (2.5 s) and the live (1.6 s) window, the line and its pitch (`POST /v1/admin/clips`,
+  admin token only, never audio). The D1 table `clips` keeps them unlabeled, once per (game, file). The Legion reads
+  them (`GET /v1/admin/clips`) and builds, validates and publishes the profiles with `voice_tool.py` without the
+  voice model; the speaker labels come from the pack at that time, so old clips get new labels.
 
 ## Security
 
@@ -55,6 +60,8 @@ their admin token also opens the app calls.
 | admin | `GET /v1/admin/voices?game=` | `{"voices":[{game,speaker,source,n,sum}]}` |
 | admin | `GET /v1/admin/lines?game=&after=&limit=&state=&min_sources=` | waiting lines (state 0) sent by `min_sources` networks (default 2) or trusted |
 | admin | `POST /v1/admin/lines/state` | `{"ids":[…],"state":1\|2}` in a pack / junk |
+| admin | `POST /v1/admin/clips` | `{"game","clips":[{file,key,en,time,speaker,label,voice_speaker,similarity,loudness,pitch,end,vec_long,vec_live}]}`, unit vectors of 64–1024 numbers (one may be null), at most 50 per request / 1 MB; a known (game, file) is ignored |
+| admin | `GET /v1/admin/clips?game=&after=&limit=` | `{"clips":[…],"next"}` oldest first, at most 500 per page |
 | admin | `PUT /v1/admin/packs/:id` | body: `.json.gz`; headers `x-pack-game`, `x-pack-title` (percent-encoded), `x-pack-entries`, `x-pack-auto`, `x-pack-key`, `x-pack-signature` (required) |
 | admin | `GET /v1/admin/packs/:id/full` | the full copy (`x-pack-variant: full` on the PUT uploads it, after the apps' copy) |
 | admin | `DELETE /v1/admin/packs/:id` | both copies |

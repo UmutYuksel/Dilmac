@@ -128,6 +128,59 @@ MARGIN = 0.08  # and at least this far ahead of the second nearest (no decision 
 MIN_PROFILE_SAMPLES = 20
 MIN_SECONDS = 0.8    # no decision from a clip shorter than this
 MIN_LOUDNESS = 150   # no decision from a clip quieter than this (RMS)
+# A saved clip's two voice vectors: profiles learn from the long window, the game decides with about the live one.
+LONG_WINDOW, LIVE_WINDOW = 2.5, 1.6
+
+
+def window(pcm16k: bytes, lead: float, end: float | None, seconds: float) -> bytes:
+    """From a saved clip that starts `lead` s before the line was first seen: [first - 0.1, first + min(seconds,
+    end)] (end: s after first seen where the next line started)."""
+    started = max(0, int((lead - 0.1) * TARGET_RATE))
+    last = int((lead + min(seconds, seconds if end is None else end)) * TARGET_RATE)
+    return pcm16k[started * 2: last * 2]
+
+
+def pitch(pcm16k: bytes) -> float:
+    """Median fundamental frequency of the speech (Hz, autocorrelation): male ~85-155, female ~165-255. 0 if not found."""
+    import numpy as np
+
+    a = np.frombuffer(pcm16k[: len(pcm16k) // 2 * 2], dtype=np.int16).astype(np.float32)
+    frame_len, step = 640, 320  # 40 ms window, 20 ms step
+    if len(a) < frame_len * 2:
+        return 0.0
+    threshold = np.percentile(np.abs(a), 90) * 0.3
+    lo, hi = TARGET_RATE // 350, TARGET_RATE // 70
+    vals = []
+    for i in range(0, len(a) - frame_len, step):
+        x = a[i:i + frame_len]
+        if np.abs(x).mean() < threshold:
+            continue
+        x = x - x.mean()
+        r = np.correlate(x, x, "full")[frame_len - 1:]
+        k = lo + int(np.argmax(r[lo:hi]))
+        if r[k] > 0.45 * r[0]:
+            vals.append(TARGET_RATE / k)
+    return float(np.median(vals)) if len(vals) >= 5 else 0.0
+
+
+def _rounded(v) -> list[float] | None:
+    return None if v is None else [round(float(x), 5) for x in v]
+
+
+def clip_vectors(recognizer: "SpeakerRecognizer", pcm16k: bytes, record: dict) -> dict | None:
+    """A saved clip as the server keeps it (POST /v1/admin/clips): the record's fields plus the long and the live
+    window's voice vectors and the pitch, no audio. The app (right after saving the clip) and voice_tool upload (from
+    the WAV) both go through here, so the Legion gets the same vectors either way. None if neither window is usable."""
+    lead, end = float(record.get("lead", 0.5)), record.get("end")
+    long_pcm = window(pcm16k, lead, end, LONG_WINDOW)
+    vec_long = recognizer.vector(long_pcm)
+    vec_live = recognizer.vector(window(pcm16k, lead, end, LIVE_WINDOW))
+    if vec_long is None and vec_live is None:
+        return None
+    out = {k: record[k] for k in ("file", "time", "en", "speaker", "label", "voice_speaker", "similarity", "loudness",
+                                  "end") if record.get(k) is not None}
+    out.update(pitch=round(pitch(long_pcm), 1), vec_long=_rounded(vec_long), vec_live=_rounded(vec_live))
+    return out
 
 
 def model_path(root: Path) -> Path:
@@ -170,6 +223,13 @@ class SpeakerRecognizer:
 
         rec.load_shared(paths.SERVER_PACKS)
         return rec
+
+    @classmethod
+    def offline(cls, root: Path, game_title: str) -> "SpeakerRecognizer":
+        """Without the voice model: builds, checks and saves profiles from vectors computed elsewhere (the clips the
+        main PC sent to the server). Never imports sherpa-onnx (the Legion's Smart App Control blocks its DLL);
+        vector() is not available."""
+        return cls(root, game_title, None)
 
     def load_shared(self, folder: Path) -> None:
         """Voice profiles other players' clips built, from the server's signed "voices-*" packs (pack_server checked
@@ -265,6 +325,8 @@ class SpeakerRecognizer:
         """Unit-length voice vector (numpy); None if the clip is short or silent."""
         import numpy as np
 
+        if self._extractor is None:
+            raise RuntimeError("ses modeli yok (SpeakerRecognizer.offline)")
         if len(pcm16k) < MIN_SECONDS * TARGET_RATE * 2 or loudness(pcm16k) < MIN_LOUDNESS:
             return None
         a = np.frombuffer(pcm16k[: len(pcm16k) // 2 * 2], dtype=np.int16).astype(np.float32) / 32768.0

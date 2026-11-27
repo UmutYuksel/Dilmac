@@ -125,12 +125,14 @@ DEFAULTS = {
     # needs a one-time pairing; ps5_direct.py). ps5_resolution: resolution of the direct stream (720p / 1080p).
     # Pack server (pack_server.py, server/): new packs come down; lines no pack had go to the shared pool when
     # share_lines is on; with share_voices also the voice vectors (192 numbers, not audio) of lines whose speaker the
-    # pack knew, for the shared voice profiles. pool_admin_token: only on our own PCs (nightly.py, pack_tool).
+    # pack knew, for the shared voice profiles. pool_admin_token: only on our own PCs (nightly.py, pack_tool); with it
+    # and upload_clips every saved clip's voice vectors (not the audio) go up for the Legion's voice profiles.
     "pack_server": "",
     "pack_secret": "",
     "share_lines": True,
     "share_voices": True,
     "pool_admin_token": "",
+    "upload_clips": True,
     "connection": "window",
     "ps5_resolution": "1080p",
 }
@@ -523,6 +525,7 @@ async def run(cfg: dict, notify=None) -> None:
     except Exception as e:
         log(f"Paket sunucusuna bakılamadı ({e}); eldeki paketlerle devam ediliyor.")
     line_pool = pack_server.LinePool(cfg, log)
+    clip_uploader = pack_server.ClipUploader(cfg, log)  # our own PCs: every clip's voice vectors go to the server
     pack_ = make_pack(cfg, glossary)
     game_name = glossary.game_title if glossary else (cfg.get("game") or "")
     audio_buffer = None   # game audio in direct mode (audio.AudioBuffer)
@@ -921,6 +924,14 @@ async def run(cfg: dict, notify=None) -> None:
             if voice_speaker:
                 record.update(voice_speaker=voice_speaker, similarity=round(similarity, 3))
             append_record(paths.CLIP_LIST, record, paths.VOICES)
+            if recognizer is not None and clip_uploader.on:
+                # Vectors only, no audio: the Legion builds the profiles from them (it cannot run the voice model).
+                try:
+                    clip = await asyncio.to_thread(S.clip_vectors, recognizer, mono, record)
+                except Exception as e:
+                    log(f"Ses vektörü çıkarılamadı: {e}")
+                    clip = None
+                clip_uploader.add(game_name, clip)
 
         task = asyncio.create_task(job())
         pending.add(task)
@@ -1038,6 +1049,7 @@ async def run(cfg: dict, notify=None) -> None:
         tv.close()
         translator.save()
         await asyncio.to_thread(line_pool.close)
+        await asyncio.to_thread(clip_uploader.close)
 
 
 # ---------------------------------------------------------------- test commands

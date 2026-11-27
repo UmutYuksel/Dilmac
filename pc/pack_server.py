@@ -7,8 +7,10 @@ App side (requests signed with the shared app secret, like CouchSubs):
   LinePool       translated lines that came from no pack (the model, the cache, Google) are queued and sent every
                  5 minutes and at the end: only the English text, its normalized key, the game and a random install
                  id. Off with "share_lines": false.
+  ClipUploader   only on our own PCs (admin token): the voice vectors of every saved voice clip (no audio) go to
+                 the server, so the Legion can build the voice profiles without the clips or the voice model.
 Nightly job and pack_tool (admin token, only on our own PCs):
-  admin_lines(), admin_set_state(), publish_pack().
+  admin_lines(), admin_set_state(), admin_clips(), publish_pack().
 
 Settings (config.json): pack_server (base URL), pack_secret, share_lines, pool_admin_token (only on the PC that runs
 the nightly job). Without pack_server / pack_secret nothing here does anything.
@@ -41,6 +43,9 @@ except ImportError:
     DEFAULT_SECRET = ""
 STATE_FILE = "sync-state.dat"  # not *.json: pack.py reads every .json in the folder as a pack
 QUEUE_FILE = paths.DATA / "pool-queue.json"
+CLIP_QUEUE_FILE = paths.DATA / "clip-queue.json"
+CLIPS_PER_POST = 50   # the server's limit (MAX_CLIPS)
+CLIP_QUEUE_MAX = 3000  # a long offline stretch: the oldest are dropped (voice_tool upload sends them again from the WAVs)
 # 2026-11-27: was a day. The Legion now publishes pool packs minutes after a game is closed, so every start looks
 # (the index is one small request; only changed packs are downloaded). The window only merges the GUI's check at
 # launch with the one when translation starts.
@@ -519,6 +524,108 @@ class LinePool:
                 self._save()
 
 
+def post_clips(cfg: dict, game: str, clips: list[dict]) -> int:
+    """Sends clip vectors (audio.clip_vectors) to POST /v1/admin/clips; the server ignores a file it already has.
+    Returns how many it took (new ones only). Raises ServerError if a batch fails."""
+    base, token = _admin(cfg)
+    gk = game_key(game)
+    added = 0
+    for i in range(0, len(clips), CLIPS_PER_POST):
+        part = clips[i:i + CLIPS_PER_POST]
+        body = json.dumps({"game": gk, "clips": [{**c, "key": M.text_key(c["en"])} for c in part]}).encode()
+        status, _, raw = request(base, "POST", "/v1/admin/clips", admin=token, body=body,
+                                 headers={"Content-Type": "application/json"}, timeout=30)
+        if status != 200:
+            raise ServerError(f"Ses vektörleri gönderilemedi (HTTP {status})")
+        added += int(json.loads(raw.decode("utf-8")).get("added", 0))
+    return added
+
+
+class ClipUploader:
+    """Our own PCs: the voice vectors of each saved clip are queued (kept in CLIP_QUEUE_FILE, so a closed app or a
+    lost connection loses nothing) and sent every FLUSH_EVERY s and on close()."""
+
+    def __init__(self, cfg: dict, log=print, queue_file: Path | None = None, start: bool = True):
+        self.cfg = cfg
+        self.log = log
+        self.on = (settings(cfg) is not None and bool(cfg.get("pool_admin_token"))
+                   and bool(cfg.get("upload_clips", True)))
+        self.queue_file = queue_file or CLIP_QUEUE_FILE
+        self.lock = threading.Lock()
+        self.queue: list[dict] = self._load() if self.on else []
+        self._unsaved = 0
+        self.stop = threading.Event()
+        self.warned = False
+        self.thread = None
+        if self.on and start:
+            self.thread = threading.Thread(target=self._loop, daemon=True, name="clip-upload")
+            self.thread.start()
+
+    def _load(self) -> list[dict]:
+        try:
+            q = json.loads(self.queue_file.read_text(encoding="utf-8"))
+            return [x for x in q if isinstance(x, dict) and x.get("game") and x.get("clip")] if isinstance(q, list) else []
+        except (OSError, ValueError):
+            return []
+
+    def _save(self) -> None:
+        self._unsaved = 0
+        try:
+            self.queue_file.write_text(json.dumps(self.queue[-CLIP_QUEUE_MAX:], ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+
+    def add(self, game: str, clip: dict | None) -> None:
+        if not self.on or not game or not clip or not clip.get("en") or not clip.get("file"):
+            return
+        with self.lock:
+            self.queue.append({"game": game, "clip": clip})
+            del self.queue[:-CLIP_QUEUE_MAX]
+            self._unsaved += 1
+            if self._unsaved >= 10:  # a crash loses at most a few (voice_tool upload sends them again from the WAVs)
+                self._save()
+
+    def flush(self) -> int:
+        """Sends what is queued; what could not be sent stays queued for next time."""
+        if not self.on:
+            return 0
+        with self.lock:
+            batch, self.queue = self.queue, []
+        if not batch:
+            return 0
+        by_game: dict[str, list[dict]] = {}
+        for item in batch:
+            by_game.setdefault(item["game"], []).append(item["clip"])
+        sent, failed = 0, []
+        for game, clips in by_game.items():
+            for i in range(0, len(clips), CLIPS_PER_POST):
+                part = clips[i:i + CLIPS_PER_POST]
+                try:
+                    post_clips(self.cfg, game, part)
+                    sent += len(part)
+                except (ServerError, OSError, ValueError) as e:
+                    failed += [{"game": game, "clip": c} for c in part]
+                    if not self.warned:
+                        self.warned = True
+                        self.log(f"Ses vektörleri sunucuya gönderilemedi ({e}); sonra yeniden denenecek.")
+        with self.lock:
+            self.queue = failed + self.queue
+            self._save()
+        return sent
+
+    def _loop(self) -> None:
+        while not self.stop.wait(FLUSH_EVERY):
+            self.flush()
+
+    def close(self) -> None:
+        self.stop.set()
+        try:
+            self.flush()
+        except Exception:
+            with self.lock:
+                self._save()
+
+
 # ---------------------------------------------------------------- admin (nightly job, pack_tool publish)
 
 def _admin(cfg: dict) -> tuple[str, str]:
@@ -556,6 +663,23 @@ def admin_voices(cfg: dict, game: str = "") -> list[dict]:
     if status != 200:
         raise ServerError(f"Ses havuzu okunamadı (HTTP {status})")
     return json.loads(body.decode("utf-8")).get("voices", [])
+
+
+def admin_clips(cfg: dict, game: str, after: int = 0, limit: int = 100000) -> list[dict]:
+    """Our PCs' clip vectors after id `after`, oldest first: [{id, file, en, time, speaker, ..., vec_long, vec_live}]."""
+    base, token = _admin(cfg)
+    out: list[dict] = []
+    while len(out) < limit:
+        q = urllib.parse.urlencode({"game": game_key(game), "after": after, "limit": 500})
+        status, _, body = request(base, "GET", f"/v1/admin/clips?{q}", admin=token, timeout=60)
+        if status != 200:
+            raise ServerError(f"Ses vektörleri okunamadı (HTTP {status})")
+        data = json.loads(body.decode("utf-8"))
+        out += data.get("clips", [])
+        if not data.get("next"):
+            break
+        after = data["next"]
+    return out[:limit]
 
 
 def admin_set_state(cfg: dict, ids: list[int], state: int) -> None:

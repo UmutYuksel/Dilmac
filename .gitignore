@@ -76,3 +76,6 @@ pc/_build_config.py
 # Hand-made packs: their own private repo (UmutYuksel/Dilmac-packs), cloned here. The English lines are the
 # games' text; the public repo and the apps only ever get hashed copies (pack.to_hashed).
 pc/packs/
+
+# Python virtual environment (macOS development)
+pc/.venv/

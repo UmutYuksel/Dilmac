@@ -19,7 +19,7 @@ Each part gets its own spec, plan and implementation, in this order:
    so the iPhone gets it too.
 3. **Speaker colors from the voice**: game audio through `kp_audio_cb`, TitaNet speaker embeddings on the Mac, the
    PC's voice profiles (`pc/audio.py`). If the Mac records game audio, it sends clip vectors with the same
-   `POST /v1/clips` sender the PC gets in the "voice profiles on the Legion" work (planned separately).
+   `POST /v1/admin/clips` format the PC uses (`audio.clip_vectors`, `pack_server.ClipUploader`).
 
 Not in any part for now: LG / Samsung TV (`tv-web/`) on Apple platforms; to be discussed separately.
 

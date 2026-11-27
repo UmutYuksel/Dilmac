@@ -11,6 +11,11 @@
 //   GET  /v1/admin/lines?game=&after=&limit=&state=   waiting lines (state 0), oldest first
 //   GET  /v1/admin/voices?game=                        voice rows: {speaker, source, n, sum}
 //   POST /v1/admin/lines/state                         {"ids":[...],"state":1|2}  in a pack / junk
+//   POST /v1/admin/clips                               {"game","clips":[{file,key,en,time,speaker,label,
+//                                                      voice_speaker,similarity,loudness,pitch,end,vec_long,vec_live}]}
+//                                                      voice vectors of our own PCs' clips (no audio); a known
+//                                                      (game, file) is ignored
+//   GET  /v1/admin/clips?game=&after=&limit=           those clips, oldest first; next = the last id or null
 //   PUT  /v1/admin/packs/:id                           body: the .json.gz; headers x-pack-game, x-pack-title,
 //                                                      x-pack-entries, x-pack-auto ("1" for pool packs);
 //                                                      x-pack-variant: full -> the copy with the English text
@@ -29,6 +34,9 @@ const MAX_VOICES = 50;          // vectors per POST /v1/voices
 const DAILY_VOICES = 600;      // vectors per network per day
 const VOICE_DIM = [64, 1024];  // length of one vector
 const SPEAKER = /^[\p{L}\p{N}' .-]{1,40}$/u;
+const MAX_CLIPS = 50;          // per POST /v1/admin/clips
+const MAX_CLIP_BODY = 1024 * 1024;
+const CLIP_FILE = /^[A-Za-z0-9._-]{1,80}$/;
 const LIMITS = { packs: 120, lines: 60, voices: 60 };  // requests per IP per hour (per Worker instance; a rough brake)
 const hits = new Map();
 
@@ -226,6 +234,73 @@ async function postVoices(request, env) {
 
 // ------------------------------------------------------------ admin
 
+/** A unit vector of VOICE_DIM length, or null. */
+function unitVector(v) {
+  if (!Array.isArray(v) || v.length < VOICE_DIM[0] || v.length > VOICE_DIM[1]) return null;
+  if (!v.every((x) => typeof x === "number" && Number.isFinite(x))) return null;
+  const norm = Math.sqrt(v.reduce((a, x) => a + x * x, 0));
+  return norm >= 0.9 && norm <= 1.1 ? v.map((x) => Math.round(x * 1e5) / 1e5) : null;
+}
+
+const label = (x) => {
+  const s = String(x ?? "").replace(CONTROL, "").trim();
+  return SPEAKER.test(s) ? s : null;
+};
+const num = (x) => (typeof x === "number" && Number.isFinite(x) ? x : null);
+
+/** Our PCs' clips as voice vectors (the long and the live window); the same (game, file) only once. */
+async function postClips(request, env) {
+  const raw = await request.arrayBuffer();
+  if (raw.byteLength > MAX_CLIP_BODY) return text("too large", 413);
+  let body;
+  try {
+    body = JSON.parse(new TextDecoder().decode(raw));
+  } catch {
+    return text("bad json", 400);
+  }
+  const game = String(body.game || "").slice(0, 120);
+  if (!/^[\p{L}\p{N}]{1,120}$/u.test(game)) return text("bad request", 400);
+  const clips = Array.isArray(body.clips) ? body.clips.slice(0, MAX_CLIPS) : [];
+  const now = Math.floor(Date.now() / 1000);
+  let added = 0, skipped = 0;
+  for (const c of clips) {
+    const file = String(c?.file || "");
+    const key = String(c?.key || "");
+    const en = String(c?.en || "").replace(CONTROL, "").trim();
+    const long = c?.vec_long == null ? null : unitVector(c.vec_long);
+    const live = c?.vec_live == null ? null : unitVector(c.vec_live);
+    const bad = (c?.vec_long != null && !long) || (c?.vec_live != null && !live) || (!long && !live)
+      || (long && live && long.length !== live.length);
+    if (!CLIP_FILE.test(file) || !/^[\p{L}\p{N}]{1,400}$/u.test(key) || !en || en.length > MAX_EN || bad) {
+      skipped++;
+      continue;
+    }
+    const r = await env.DB.prepare(
+      `INSERT OR IGNORE INTO clips (game, file, key, en, time, speaker, label, voice_speaker, similarity, loudness, pitch,
+       clip_end, dim, vec_long, vec_live, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(game, file, key, en, String(c.time || "").slice(0, 19), label(c.speaker), label(c.label),
+      label(c.voice_speaker), num(c.similarity), num(c.loudness), num(c.pitch), num(c.end), (long || live).length,
+      long && JSON.stringify(long), live && JSON.stringify(live), now).run();
+    if (r.meta.changes) added++;
+  }
+  return json({ ok: true, added, skipped });
+}
+
+async function adminClips(url, env) {
+  const game = url.searchParams.get("game") || "";
+  const after = Number(url.searchParams.get("after") || 0);
+  const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit") || 200)));
+  const cols = "id, game, file, key, en, time, speaker, label, voice_speaker, similarity, loudness, pitch, clip_end, vec_long, vec_live";
+  const q = game
+    ? env.DB.prepare(`SELECT ${cols} FROM clips WHERE game = ? AND id > ? ORDER BY id LIMIT ?`).bind(game, after, limit)
+    : env.DB.prepare(`SELECT ${cols} FROM clips WHERE id > ? ORDER BY id LIMIT ?`).bind(after, limit);
+  const { results } = await q.all();
+  const clips = results.map(({ clip_end, vec_long, vec_live, ...r }) => ({
+    ...r, end: clip_end, vec_long: vec_long && JSON.parse(vec_long), vec_live: vec_live && JSON.parse(vec_live),
+  }));
+  return json({ clips, next: results.length === limit ? results[results.length - 1].id : null });
+}
+
 async function adminVoices(url, env) {
   const game = url.searchParams.get("game") || "";
   const q = game
@@ -347,6 +422,8 @@ export default {
         if (m === "GET" && path === "/v1/admin/lines") return adminLines(url, env);
         if (m === "GET" && path === "/v1/admin/voices") return adminVoices(url, env);
         if (m === "POST" && path === "/v1/admin/lines/state") return adminState(request, env);
+        if (m === "POST" && path === "/v1/admin/clips") return postClips(request, env);
+        if (m === "GET" && path === "/v1/admin/clips") return adminClips(url, env);
         const full = path.match(/^\/v1\/admin\/packs\/([^/]+)\/full$/);
         if (full && m === "GET") return getFullPack(env, full[1]);
         const pack = path.match(/^\/v1\/admin\/packs\/([^/]+)$/);

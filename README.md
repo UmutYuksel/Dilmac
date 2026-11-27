@@ -158,6 +158,11 @@ py pc\voice_tool.py profile                # rebuild the voice profiles from the
 py pc\voice_tool.py validate               # leave-one-out accuracy of the voice profiles
 ```
 
+Our own PCs (with `pool_admin_token`) send the voice vectors of every saved clip to the pack server, never the
+audio, so the voice profiles can be built on another PC (the Legion) that has neither the clips nor the voice model:
+there `voice_tool` reads the server's vectors (or with `--server` anywhere). Clips saved before this existed are sent
+once with `py pc\voice_tool.py upload` on the PC that has them.
+
 Step by step (with the pool's lines too): `PACKS.md`.
 
 > **Copyright note:** game subtitles belong to their publishers, so no pack with English text is published. The

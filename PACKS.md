@@ -1,8 +1,9 @@
 # "Paketleri güncelle" (Claude oturumuna talimat)
 
 Kullanıcı "paketleri güncelle" / "paketi güncelle" dediğinde ya da zamanlanmış görev bunu istediğinde bu dosyayı izle.
-**Kullanıcıyla Türkçe konuş.** Bu akış ana PC'de de Lenovo Legion'da da çalışır; Legion'da oyun kaydı ve ses parçası
-yoktur, orada yalnız havuz satırları gelir.
+**Kullanıcıyla Türkçe konuş.** Bu akış Lenovo Legion'da çalışır; ana PC'nin tek işi oynamak. Ana PC oynarken
+görmediği satırları havuza, her ses parçasının ses vektörünü (ses kaydı değil) sunucuya gönderir; Legion ikisini de
+oradan alır.
 
 ## Neden
 
@@ -22,8 +23,8 @@ elle yapılan pakete (`pc/packs/gta6.json`) ekler. Aynı satır iki pakette vars
    `{"lines": {EN: TR}, "speakers": {EN: kim}, "drop": [EN, ...]}`
    - Doğal sokak Türkçesi; argoyu yumuşatma, karakterin tonunu koru. Önceki/sonraki satırlara bak.
    - Konuşanı yalnız eminsen etiketle; 3 sözcükten kısa ve genel satırlara etiket koyma. Bir kez görünen kişi
-     `pedestrian`, polis `police`. Ana PC'de etiketlerken `py pc\voice_tool.py list GÜN` (perde, en yakın profil)
-     güvenilir kaynak.
+     `pedestrian`, polis `police`. Etiketlerken `py pc\voice_tool.py list GÜN` (perde, en yakın profil) güvenilir
+     kaynak.
    - Bozuk OCR okuması (ör. "Jell me", "Nozno!"): düzgün hali zaten listede ya da pakette varsa `drop`'a koy; yoksa
      düzeltilmiş İngilizceyle anahtarla. İki repliğin birleştiği okuma, şarkı sözü, deneme satırı: `drop`.
      `drop` satırları paketin `skipped` listesine girer ve bir daha önerilmez.
@@ -33,8 +34,11 @@ elle yapılan pakete (`pc/packs/gta6.json`) ekler. Aynı satır iki pakette vars
 4. **Ekle:** `py pc\pack_tool.py add DOSYA`, sonra yeniden `pending --pool` → 0 bekleyen olmalı.
 5. **Yayınla:** `py pc\pack_tool.py publish gta6` ve `py pc\pack_tool.py prune-pool DOSYA` (havuz paketinden elle
    pakete giren ve `drop` edilen satırları çıkarır).
-6. **Ses profilleri (yalnız ana PC, uygulama kapalıyken):** `py pc\voice_tool.py profile`, `validate`, sonra
-   `py pc\voice_tool.py publish` (profilleri sunucuya koyar).
+6. **Ses profilleri (Legion'da):** `py pc\voice_tool.py profile`, `validate`, sonra `py pc\voice_tool.py publish`
+   (profilleri sunucuya koyar). Legion'da ses modeli olmadığı için `voice_tool` parçaları sunucudaki ses
+   vektörlerinden okur (`pc\voices\clip-vectors.jsonl`'a yalnız yenileri iner); sherpa-onnx yüklenmez.
+   `validate`'in doğruluğu ve kapsaması bir önceki çalıştırmadan belirgin düştüyse yayınlamadan önce kullanıcıya
+   sor.
 7. **Git:** `pc\packs` deposunda `gta6.json`'ı commit'le (`Pack: N new lines (date)`) ve push et. Paketler ana
    (herkese açık) depoya asla girmez; uygulamalar sunucudan yalnız karmalı kopyayı alır. Ana PC'de exe'yi yeniden
    derlemek gerekmez; paketler sunucudan iner.

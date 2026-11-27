@@ -197,3 +197,45 @@ test("a published pack is listed, downloaded and checked; unchanged upload keeps
   const after = await (await fetch(`${BASE}/v1/packs`, { headers: signed("GET", "/v1/packs") })).json();
   assert.equal(after.packs.length, 0);
 });
+
+test("our PCs' clip vectors are stored once per file, paged by id, and only with an admin token", async () => {
+  const unit = (i, dim = 192) => Array.from({ length: dim }, (_, j) => (j === i % dim ? 1 : 0));
+  const clip = (i, extra = {}) => ({
+    file: `20261127-2215${String(i).padStart(2, "0")}-123.wav`, key: `line${i}`, en: `Line ${i}.`, time: "2026-11-27 22:15:30",
+    speaker: i % 2 ? "Jason" : null, loudness: 900, pitch: 120.5, end: 2.5, vec_long: unit(i), vec_live: unit(i + 1), ...extra,
+  });
+  const post = (body, headers = admin({ "content-type": "application/json" })) =>
+    fetch(`${BASE}/v1/admin/clips`, { method: "POST", body: JSON.stringify(body), headers });
+  // never without the admin token, not even with the app's signature
+  assert.equal((await post({ game: GAME, clips: [clip(1)] }, signed("POST", "/v1/admin/clips"))).status, 403);
+  assert.equal((await fetch(`${BASE}/v1/admin/clips?game=${GAME}`, { headers: signed("GET", "/v1/admin/clips") })).status, 403);
+  assert.equal((await post({ game: "", clips: [clip(1)] })).status, 400);
+
+  const first = await (await post({ game: GAME, clips: [clip(1), clip(2), clip(3, { vec_live: null })] })).json();
+  assert.deepEqual([first.added, first.skipped], [3, 0]);
+  const again = await (await post({ game: GAME, clips: [clip(1), clip(4)] })).json();
+  assert.deepEqual([again.added, again.skipped], [1, 0]);  // clip 1 is known: ignored
+  const bad = await (await post({ game: GAME, clips: [
+    clip(5, { vec_long: unit(5).map((x) => x * 3) }),   // not a unit vector
+    clip(6, { vec_long: null, vec_live: null }),        // no vector at all
+    clip(7, { vec_live: unit(1, 128) }),                // the two windows differ in length
+    clip(8, { file: "../../etc/passwd" }),
+    clip(9, { en: "" }),
+  ] })).json();
+  assert.deepEqual([bad.added, bad.skipped], [0, 5]);
+
+  const page1 = await (await fetch(`${BASE}/v1/admin/clips?game=${GAME}&limit=3`, { headers: admin() })).json();
+  assert.equal(page1.clips.length, 3);
+  assert.deepEqual(page1.clips.map((c) => c.key), ["line1", "line2", "line3"]);
+  assert.equal(page1.clips[0].speaker, "Jason");
+  assert.equal(page1.clips[1].speaker, null);
+  assert.equal(page1.clips[0].end, 2.5);
+  assert.equal(page1.clips[0].vec_long.length, 192);
+  assert.equal(page1.clips[0].vec_long[1], 1);
+  assert.equal(page1.clips[2].vec_live, null);
+  const page2 = await (await fetch(`${BASE}/v1/admin/clips?game=${GAME}&limit=3&after=${page1.next}`, { headers: admin() })).json();
+  assert.deepEqual(page2.clips.map((c) => c.key), ["line4"]);
+  assert.equal(page2.next, null);
+  const other = await (await fetch(`${BASE}/v1/admin/clips?game=othergame`, { headers: admin() })).json();
+  assert.equal(other.clips.length, 0);
+});
