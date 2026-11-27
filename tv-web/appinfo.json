@@ -1,0 +1,13 @@
+{
+  "id": "com.dilmac.tv",
+  "version": "0.9.0",
+  "vendor": "Dilmac",
+  "type": "web",
+  "main": "index.html",
+  "title": "Dilmaç",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#000000",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true
+}

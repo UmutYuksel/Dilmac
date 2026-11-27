@@ -1,0 +1,13 @@
+{
+  "tv_ip": "192.168.1.50",
+  "engine": "opus",
+  "local_model": "gemma4:e4b-it-qat",
+  "gemini_api_key": "PUT_YOUR_KEY_HERE",
+  "gemini_model": "gemini-3.5-flash-lite",
+  "game": "Grand Theft Auto VI",
+  "region": { "left": 0.08, "top": 0.70, "width": 0.84, "height": 0.27 },
+  "font_size": 30,
+  "bottom_margin": 60,
+  "save_frames": false,
+  "connection": "window"
+}

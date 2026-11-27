@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, user-scalable=no">
+  <title>Dilmaç</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- The TV's HDMI input (the PS5) fills the screen behind everything; the platform script puts it here. -->
+  <div id="picture"></div>
+  <!-- One box per subtitle track (speech, objective, k0..k5). -->
+  <div id="subs"></div>
+  <!-- Connection info: shown while there is no PC link, or for a few seconds after OK on the remote. -->
+  <div id="status" class="status">
+    <div class="status-title">Dilmaç <span id="st-version"></span></div>
+    <div id="st-pc">Bilgisayar bekleniyor</div>
+    <div id="st-hdmi"></div>
+    <div class="status-hint">◀ ▶ HDMI girişi · OK bilgi · Geri çıkış</div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="platform.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

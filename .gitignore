@@ -1,0 +1,78 @@
+# --- Secrets and personal data: never commit ---
+# Settings (may contain a Gemini API key)
+pc/config.json
+# PS5 pairing (PSN account id, Remote Play registration keys)
+pc/ps5-pairing.json
+pc/ps5-eslesme.json
+# LG TV developer mode (SSH private key and passphrase)
+pc/lg-tv.json
+# Samsung TV signing keys, certificates (per TV DUID), sdb key
+pc/samsung/
+# Downloaded models (OPUS-MT translation model)
+pc/models/
+# Pack server: downloaded packs, the pool's send queue and the random install id
+pc/packs-server/
+pc/pool-queue.json
+pc/install-id.txt
+# Pack publisher signing key (encrypted with DPAPI, still never in git)
+pc/pack-signing-key
+# Access key between this PC and the TV web app
+pc/tv-token
+# Logs, recorded frames, line logs, voice clips and profiles, translation cache
+pc/log*.txt
+pc/gunluk*.txt
+pc/frames/
+pc/kareler/
+pc/lines/
+pc/kayit/
+pc/voices/
+pc/sesler/
+pc/translation-cache*.json
+pc/ceviri-onbellek*.json
+pc/calibration*.png
+pc/kalibrasyon*.png
+
+# --- Build outputs and downloaded binaries ---
+*.exe
+*.apk
+pc/chiaki_bridge/bin/
+pc/chiaki_kopru/bin/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# One-time data migration marker
+pc/.migrated-en
+
+# --- iOS ---
+# Build tools (cmake, ninja, protobuf) and downloaded/built third-party sources
+ios/.venv/
+ios/third_party/
+ios/build/
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.DS_Store
+
+# Local signing settings (Apple team id)
+ios/Config/Local.xcconfig
+
+# SwiftPM build output of ios/DilmacCore (swift test)
+ios/DilmacCore/.build/
+ios/DilmacCore/.swiftpm/
+
+# Build-time app secret for the exe (build_exe.py writes and deletes it)
+pc/_build_config.py
+
+# Hand-made packs: their own private repo (UmutYuksel/Dilmac-packs), cloned here. The English lines are the
+# games' text; the public repo and the apps only ever get hashed copies (pack.to_hashed).
+pc/packs/

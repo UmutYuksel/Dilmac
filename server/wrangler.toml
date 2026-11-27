@@ -1,0 +1,20 @@
+# Dilmaç pack server (Cloudflare Worker). See README.md in this folder.
+name = "dilmac"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Line pool. database_id comes from `npx wrangler d1 create dilmac-pool` (local dev does not need it).
+[[d1_databases]]
+binding = "DB"
+database_name = "dilmac-pool"
+database_id = "2d6b37eb-853f-4825-98c5-2474c08d84a1"
+
+# Packs: index.json and packs/<id>.json.gz. Created with `npx wrangler r2 bucket create dilmac-packs`.
+[[r2_buckets]]
+binding = "PACKS"
+bucket_name = "dilmac-packs"
+
+# Secrets (never in the repo; locally in .dev.vars):
+#   APP_SECRET   signs the app's requests (`npx wrangler secret put APP_SECRET`)
+#   ADMIN_TOKEN  the nightly job and pack_tool publish (`npx wrangler secret put ADMIN_TOKEN`)

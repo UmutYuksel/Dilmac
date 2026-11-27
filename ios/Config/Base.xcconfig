@@ -1,0 +1,7 @@
+// Dilmaç (iOS) build settings shared by everyone.
+// Personal signing settings (Apple team) go in Local.xcconfig next to this file, which git ignores.
+// Copy Local.xcconfig.example to Local.xcconfig and fill in your team id.
+DILMAC_BUNDLE_ID = com.dilmac.ios
+// ChiakiBridge.xcframework has arm64 slices only (Apple Silicon simulators).
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
+#include? "Local.xcconfig"

@@ -1,0 +1,318 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D1A000000000000000000008 /* ChiakiBridge.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000006 /* ChiakiBridge.xcframework */; };
+		D1A00000000000000000000E /* packs in Resources */ = {isa = PBXBuildFile; fileRef = D1A00000000000000000000C /* packs */; };
+		D1A00000000000000000000F /* glossary in Resources */ = {isa = PBXBuildFile; fileRef = D1A00000000000000000000D /* glossary */; };
+		D1A0000000000000000000E3 /* DilmacCore in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000E2 /* DilmacCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D1A000000000000000000006 /* ChiakiBridge.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ChiakiBridge.xcframework; path = build/ChiakiBridge.xcframework; sourceTree = "<group>"; };
+		D1A000000000000000000007 /* Dilmac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dilmac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1A00000000000000000000B /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		D1A00000000000000000000C /* packs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = packs; path = ../pc/packs; sourceTree = "<group>"; };
+		D1A00000000000000000000D /* glossary */ = {isa = PBXFileReference; lastKnownFileType = folder; name = glossary; path = ../pc/glossary; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D1A000000000000000000003 /* Dilmac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Dilmac;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D1A0000000000000000000C2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1A000000000000000000008 /* ChiakiBridge.xcframework in Frameworks */,
+				D1A0000000000000000000E3 /* DilmacCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D1A000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				D1A000000000000000000003 /* Dilmac */,
+				D1A00000000000000000000A /* Config */,
+				D1A0000000000000000000F0 /* GameData */,
+				D1A000000000000000000004 /* Frameworks */,
+				D1A000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D1A000000000000000000004 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D1A000000000000000000006 /* ChiakiBridge.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D1A000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D1A000000000000000000007 /* Dilmac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D1A00000000000000000000A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				D1A00000000000000000000B /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		D1A0000000000000000000F0 /* GameData */ = {
+			isa = PBXGroup;
+			children = (
+				D1A00000000000000000000C /* packs */,
+				D1A00000000000000000000D /* glossary */,
+			);
+			name = GameData;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D1A000000000000000000009 /* Dilmac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D1A0000000000000000000B1 /* Build configuration list for PBXNativeTarget "Dilmac" */;
+			buildPhases = (
+				D1A0000000000000000000C1 /* Sources */,
+				D1A0000000000000000000C2 /* Frameworks */,
+				D1A0000000000000000000C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D1A000000000000000000003 /* Dilmac */,
+			);
+			name = Dilmac;
+			packageProductDependencies = (
+				D1A0000000000000000000E2 /* DilmacCore */,
+			);
+			productName = Dilmac;
+			productReference = D1A000000000000000000007 /* Dilmac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D1A000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					D1A000000000000000000009 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = D1A0000000000000000000B0 /* Build configuration list for PBXProject "Dilmac" */;
+			developmentRegion = tr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				tr,
+				en,
+				Base,
+			);
+			mainGroup = D1A000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D1A0000000000000000000E1 /* XCLocalSwiftPackageReference "DilmacCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D1A000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D1A000000000000000000009 /* Dilmac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D1A0000000000000000000C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1A00000000000000000000E /* packs in Resources */,
+				D1A00000000000000000000F /* glossary in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D1A0000000000000000000C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D1A0000000000000000000D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D1A0000000000000000000D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D1A0000000000000000000D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D1A00000000000000000000B /* Base.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Dilmaç";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Dilmaç, PS5'e ve TV'ye ev ağınız üzerinden bağlanır.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DILMAC_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		D1A0000000000000000000D4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D1A00000000000000000000B /* Base.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Dilmaç";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Dilmaç, PS5'e ve TV'ye ev ağınız üzerinden bağlanır.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DILMAC_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D1A0000000000000000000B0 /* Build configuration list for PBXProject "Dilmac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A0000000000000000000D1 /* Debug */,
+				D1A0000000000000000000D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D1A0000000000000000000B1 /* Build configuration list for PBXNativeTarget "Dilmac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A0000000000000000000D3 /* Debug */,
+				D1A0000000000000000000D4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D1A0000000000000000000E1 /* XCLocalSwiftPackageReference "DilmacCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = DilmacCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D1A0000000000000000000E2 /* DilmacCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DilmacCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D1A000000000000000000001 /* Project object */;
+}

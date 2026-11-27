@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <!-- Only this page's own files run; nothing is loaded from or sent to the internet from inside the window (links
+       open in the browser through Python). Inline style attributes are allowed (the templates use a few). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Dilmaç</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- First start: step by step setup -->
+  <div id="setup" class="page hidden">
+    <aside class="card">
+      <div class="brand"><div class="logo" data-icon="logo"></div><b>Kurulum</b></div>
+      <ol id="step-list"></ol>
+      <div class="progress"><span id="step-count"></span><div class="bar"><div id="step-bar"></div></div></div>
+    </aside>
+    <section id="step-panel" class="card"></section>
+    <footer>
+      <button id="back">Geri</button>
+      <div class="row"><button id="skip" class="link hidden">Atla</button><button id="next" class="primary">Devam</button></div>
+    </footer>
+  </div>
+
+  <!-- Main screen -->
+  <div id="main" class="page hidden">
+    <header>
+      <div class="logo" data-icon="logo"></div><b>Dilmaç</b><span class="version" id="version"></span>
+      <div class="grow"></div>
+      <button id="open-setup" class="small">Kurulum</button>
+      <button id="open-settings" class="small">Ayarlar</button>
+    </header>
+    <div class="main-grid">
+      <div class="left-col">
+        <button id="startstop" class="big primary">▶  Çeviriyi başlat</button>
+        <div id="run-state"></div>
+        <div class="cards2">
+          <div class="card stat click" id="card-ps5"><div class="top"><span class="label" data-icon="pad">PS5</span><span class="dot"></span></div><div class="v"></div><div class="s"></div></div>
+          <div class="card stat click" id="card-tv"><div class="top"><span class="label" data-icon="tv">TV</span><span class="dot"></span></div><div class="v"></div><div class="s"></div></div>
+          <div class="card stat click" id="card-engine"><div class="top"><span class="label" data-icon="globe">Çeviri</span><span class="dot"></span></div><div class="v"></div><div class="s"></div></div>
+          <div class="card stat click" id="card-game"><div class="top"><span class="label" data-icon="box">Oyun</span><span class="dot"></span></div><div class="v"></div><div class="s"></div></div>
+        </div>
+        <div class="card" id="problems"></div>
+      </div>
+      <div class="card live">
+        <div class="live-head"><b>Canlı altyazı</b><span class="row"><span class="dot" id="live-dot"></span><span class="dim" id="live-time"></span></span></div>
+        <div id="now"><div id="now-tr" class="idle">Çeviri başlayınca okunan satırlar burada görünür</div><div id="now-en"></div><div id="now-meta"></div></div>
+        <div id="history"></div>
+        <details class="log" id="logbox"><summary>Günlük</summary><pre id="log" class="selectable"></pre><div class="row mt"><button class="small" id="open-log">Günlük dosyasını aç</button><button class="small" id="clear-log">Temizle</button></div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings" class="page hidden">
+    <header>
+      <button id="settings-back" class="small">‹ Geri</button><b>Ayarlar</b><div class="grow"></div>
+    </header>
+    <div class="settings-body" id="settings-body"></div>
+    <footer><button id="settings-save" class="primary">Kaydet</button><span class="dim" id="settings-note"></span></footer>
+  </div>
+
+  <!-- Subtitle area editor (from Settings) -->
+  <div id="region-overlay" class="overlay hidden"><div class="card" id="region-card"></div></div>
+
+  <!-- Question / message box -->
+  <div id="dialog" class="overlay hidden"><div class="card"><h3 id="dialog-title"></h3><p id="dialog-text" class="dim"></p><div class="row" style="justify-content:flex-end"><button id="dialog-cancel">Vazgeç</button><button id="dialog-ok" class="primary">Tamam</button></div></div></div>
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

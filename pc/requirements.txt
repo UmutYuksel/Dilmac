@@ -1,0 +1,26 @@
+# Screen capture, images, English dictionary, Windows OCR
+mss
+pillow
+pyspellchecker
+winrt-runtime
+winrt-Windows.Foundation
+winrt-Windows.Foundation.Collections
+winrt-Windows.Globalization
+winrt-Windows.Graphics.Imaging
+winrt-Windows.Media.Ocr
+winrt-Windows.Storage.Streams
+# Direct PS5 connection (ps5_direct.py): the connection itself goes through chiaki-ng's library (pc\chiaki_bridge,
+# built with build.sh in MSYS2), video is decoded with PyAV, the PSN login uses requests.
+requests
+av
+# Speaker recognition by voice (audio.py): TitaNet-small voice vectors with sherpa-onnx. The model
+# (nemo_en_titanet_small.onnx, 40 MB) from the k2-fsa/sherpa-onnx GitHub release goes into pc\voices\model\.
+numpy==2.5.4
+sherpa-onnx==2.0.1
+# Translation on this computer (opus_mt.py): OPUS-MT with CTranslate2; the model is downloaded on first use.
+ctranslate2
+sentencepiece
+# LG TV (lg_tv.py): installs and opens the TV web app over the TV's developer mode SSH.
+paramiko
+# GUI: pywebview (HTML GUI in an Edge WebView2 window), sv-ttk (theme of the Tkinter fallback); pyinstaller (build_exe.py)
+pywebview
