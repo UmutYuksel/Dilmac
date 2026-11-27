@@ -5,9 +5,8 @@ Date: 2026-11-28. Status: approved design, not yet planned.
 ## Why
 
 The iPhone app works in game, but the phone's battery drains fast (5 Vision "accurate" reads a second plus 30 fps
-decoding). The user has a Mac mini (M2 Pro) on mains power. A Mac version removes the battery problem, joins the Apple
-ecosystem, and, more importantly, the M2 Pro can run a local LLM that translates slang and context far better than
-Apple Translation. Gemini is out (too slow to answer); slang must be kept.
+decoding). A Mac on mains power removes the battery problem, joins the Apple ecosystem, and, more importantly, an
+Apple Silicon Mac can run a local LLM that translates slang and context far better than Apple Translation. Gemini is out (too slow to answer); slang must be kept.
 
 ## The Mac version in three parts
 

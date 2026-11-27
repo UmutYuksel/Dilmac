@@ -195,7 +195,7 @@ def _unit(v):
 
 
 def merge_voices(cfg: dict, log=_log_default) -> dict:
-    """Our published profiles (voices-<game>, from the main PC's clips) plus the pool's checked rows ->
+    """Our published profiles (voices-<game>, from the Windows PC's clips) plus the pool's checked rows ->
     voices-pool-<game>. The app uses, per character, the profile with more clips, so the merged one wins once it has
     more. Published only when it changed."""
     import audio

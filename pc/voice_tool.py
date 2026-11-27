@@ -6,7 +6,7 @@
   py pc\\voice_tool.py list [DAY]   labeling help: each clip's pitch (male/female) and its most similar profile
   py pc\\voice_tool.py publish      puts this PC's profiles on the pack server ("voices-<game>", signed) so every
                                    app has them from the start (needs pool_admin_token and the signing key)
-  py pc\\voice_tool.py upload       (main PC, once) sends the voice vectors of the clips already saved here to the
+  py pc\\voice_tool.py upload       (once, on the PC with the WAVs) sends the voice vectors of the clips already saved here to the
                                    server; the app sends every new clip's by itself (no audio either way)
 
 Where the clips come from: on a PC with the voice model (pc\\voices\\model\\) and sherpa-onnx, the WAVs in
@@ -179,7 +179,7 @@ def main(argv=None) -> int:
     # Smart App Control blocks its DLL).
     from_server = a.server or (a.cmd != "upload" and not S.model_path(root).is_file())
     if a.cmd == "upload" and from_server:
-        print("upload ses dosyalarından çalışır: ses modeli ve sherpa-onnx olan bilgisayarda (ana PC) çalıştır.")
+        print("upload ses dosyalarından çalışır: ses modeli ve sherpa-onnx olan, ses dosyalarını tutan bilgisayarda (oyunun oynandığı Windows bilgisayar) çalıştır.")
         return 1
     if from_server:
         records = server_records(root, cfg, game_title)

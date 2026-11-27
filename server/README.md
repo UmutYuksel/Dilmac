@@ -11,14 +11,14 @@ A Cloudflare Worker (free plan) that is the one place packs are collected:
   Hand-made packs (`pack_tool.py publish gta6`) stay ahead of the pool pack: for a line the first file wins, and
   `gta6.json` sorts before `pool-…`. "Update the packs" (`PACKS.md` in the top folder) has Claude review the pool's
   lines (Gemma's translation as a draft) into the hand-made pack, and `prune-pool` takes them out of the pool pack.
-- **Voice profiles:** `voice_tool.py publish` puts the main PC's character profiles up as `voices-<game>` (a signed
+- **Voice profiles:** `voice_tool.py publish` puts our character profiles up as `voices-<game>` (a signed
   pack with no lines, `"voices": {speaker: {"sum", "n"}}`). Players' apps send the voice vector (192 numbers, not
   audio) of lines whose speaker the pack knew (`POST /v1/voices`, off with `"share_voices": false`; our PCs send
   none). The D1 table `voices` keeps one sum per game, speaker and network. Every pool run the Legion takes a
   network's row only if its average is close to our profile of that character and closer than to any other
   (`nightly.VOICE_ACCEPT`), counts one network as at most 50 clips, and publishes `voices-pool-<game>`. The app
   uses, per character, the profile with more clips (its own or a shared one), never their sum.
-- **Clip vectors (our PCs only):** the main PC (where the voice model runs) sends, for every saved voice clip, the
+- **Clip vectors (our PCs only):** the Windows PC that plays (where the voice model runs) sends, for every saved voice clip, the
   voice vectors of the long (2.5 s) and the live (1.6 s) window, the line and its pitch (`POST /v1/admin/clips`,
   admin token only, never audio). The D1 table `clips` keeps them unlabeled, once per (game, file). The Legion reads
   them (`GET /v1/admin/clips`) and builds, validates and publishes the profiles with `voice_tool.py` without the

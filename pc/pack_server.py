@@ -117,7 +117,7 @@ def pack_id_for(title: str, prefix: str = "") -> str:
 # key id -> raw Ed25519 public key, base64 (`pack_tool.py keygen` prints a PC's line). The private keys never leave the
 # PC that made them (encrypted with DPAPI); the Legion gets its own key for the nightly pool packs.
 PUBLISHER_KEYS: dict[str, str] = {
-    "c1a34893f549810f": "L2JqUcvY4ESVX0PvzJ9N+KuUT6TXRljdnSz/P7MVuCE=",  # main PC (hand-made packs), 2026-11-26
+    "c1a34893f549810f": "L2JqUcvY4ESVX0PvzJ9N+KuUT6TXRljdnSz/P7MVuCE=",  # Windows PC (hand-made packs), 2026-11-26
     "ca60e4793e00f8a5": "0V8cEpAnkhrtZGDE7LHyokGKMGlzEW3yJfNVzf6H2u8=",  # Legion (nightly pool packs), 2026-11-27
 }
 SIGNING_KEY_FILE = "pack-signing-key"

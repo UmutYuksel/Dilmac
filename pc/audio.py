@@ -227,7 +227,7 @@ class SpeakerRecognizer:
     @classmethod
     def offline(cls, root: Path, game_title: str) -> "SpeakerRecognizer":
         """Without the voice model: builds, checks and saves profiles from vectors computed elsewhere (the clips the
-        main PC sent to the server). Never imports sherpa-onnx (the Legion's Smart App Control blocks its DLL);
+        Windows PC sent to the server). Never imports sherpa-onnx (the Legion's Smart App Control blocks its DLL);
         vector() is not available."""
         return cls(root, game_title, None)
 

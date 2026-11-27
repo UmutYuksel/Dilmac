@@ -1,5 +1,5 @@
-"""Voice profiles on the Legion: the main PC sends each clip's voice vectors (no audio), the Legion builds the same
-profiles from them without the voice model (voice_tool --server)."""
+"""Voice profiles on the Legion: the Windows PC that plays sends each clip's voice vectors (no audio), the Legion
+builds the same profiles from them without the voice model (voice_tool --server)."""
 import contextlib
 import io
 import json
@@ -110,7 +110,7 @@ class UploaderTest(unittest.TestCase):
 
 
 class LegionEquivalenceTest(unittest.TestCase):
-    """The profiles and the validation from the server's vectors (the Legion, no voice model) are the ones the main PC
+    """The profiles and the validation from the server's vectors (the Legion, no voice model) are the ones the Windows PC
     gets from its WAVs."""
 
     def setUp(self):
@@ -223,7 +223,7 @@ class LegionEquivalenceTest(unittest.TestCase):
                 mock.patch.object(V, "prepare", return_value=(self.cfg, GAME, FakePack(self.labels))), \
                 contextlib.redirect_stdout(out):
             self.assertEqual(V.main(["upload", "--server"]), 1)
-        self.assertIn("ana PC", out.getvalue())
+        self.assertIn("Windows bilgisayar", out.getvalue())
 
 
 if __name__ == "__main__":

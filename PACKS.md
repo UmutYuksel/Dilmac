@@ -1,9 +1,9 @@
 # "Paketleri güncelle" (Claude oturumuna talimat)
 
 Kullanıcı "paketleri güncelle" / "paketi güncelle" dediğinde ya da zamanlanmış görev bunu istediğinde bu dosyayı izle.
-**Kullanıcıyla Türkçe konuş.** Bu akış Lenovo Legion'da çalışır; ana PC'nin tek işi oynamak. Ana PC oynarken
-görmediği satırları havuza, her ses parçasının ses vektörünü (ses kaydı değil) sunucuya gönderir; Legion ikisini de
-oradan alır.
+**Kullanıcıyla Türkçe konuş.** Bu akış Lenovo Legion'da (paketleri güncelleyen sunucu sistemi) çalışır.
+Uygulamayı kullanan Windows bilgisayarın tek işi oynamak: oynarken pakette olmayan satırları havuza, her ses
+parçasının ses vektörünü (ses kaydı değil) sunucuya gönderir; Legion ikisini de Cloudflare'den alır.
 
 ## Neden
 
@@ -40,8 +40,8 @@ elle yapılan pakete (`pc/packs/gta6.json`) ekler. Aynı satır iki pakette vars
    `validate`'in doğruluğu ve kapsaması bir önceki çalıştırmadan belirgin düştüyse yayınlamadan önce kullanıcıya
    sor.
 7. **Git:** `pc\packs` deposunda `gta6.json`'ı commit'le (`Pack: N new lines (date)`) ve push et. Paketler ana
-   (herkese açık) depoya asla girmez; uygulamalar sunucudan yalnız karmalı kopyayı alır. Ana PC'de exe'yi yeniden
-   derlemek gerekmez; paketler sunucudan iner.
+   (herkese açık) depoya asla girmez; uygulamalar sunucudan yalnız karmalı kopyayı alır. Windows bilgisayarda exe'yi
+   yeniden derlemek gerekmez; paketler sunucudan iner.
 8. **Özet:** kaç satır eklendi, kaçı atıldı, paket sürümü.
 
 ## Zamanlanmış görev (Lenovo)

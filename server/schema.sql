@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS quota (
   PRIMARY KEY (day, source)
 );
 
--- Voice clips of our own PCs (admin token only), as voice vectors, never audio: the main PC (where sherpa-onnx runs)
+-- Voice clips of our own PCs (admin token only), as voice vectors, never audio: the Windows PC that plays (sherpa-onnx runs there)
 -- computes them while playing, the Legion builds, validates and publishes the profiles from them with numpy alone.
 -- Unlabeled on purpose: the speaker comes from the pack when the profiles are built, so old clips get new labels.
 CREATE TABLE IF NOT EXISTS clips (
