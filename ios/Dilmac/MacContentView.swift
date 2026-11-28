@@ -1,4 +1,5 @@
 #if os(macOS)
+import AppKit
 import SwiftUI
 import Translation
 
@@ -222,6 +223,20 @@ struct MacSettingsView: View {
                         .disabled(engine != .llm)
                     Text("LLM 1,5 sn içinde cevap vermezse Apple Çeviri de denenir, önce gelen gösterilir; LLM'in geç "
                          + "gelen çevirisi bir sonraki sefer için saklanır.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Deneme") {
+                    Button("Kareleri dene...") {
+                        let panel = NSOpenPanel()
+                        panel.allowedContentTypes = [.png]
+                        panel.allowsMultipleSelection = true
+                        panel.directoryURL = FrameStore.folder
+                        if panel.runModal() == .OK {
+                            model.replayFrames(panel.urls)
+                            dismiss()
+                        }
+                    }
+                    Text("Kaydedilmiş PS5 kareleri (PNG) oyundaymış gibi okunur ve çevrilir; sonuç Altyazılar listesine düşer.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Günlük") {

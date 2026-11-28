@@ -114,6 +114,10 @@ final class AppModel: ObservableObject {
                 #if os(macOS)
                 // Developer check without a PS5: open Dilmac.app --args -trial "An English line."
                 if let line = UserDefaults.standard.string(forKey: "trial") { self.tryTranslate(line) }
+                // ... or saved frames: --args -replay "/path/a.png,/path/b.png"
+                if let list = UserDefaults.standard.string(forKey: "replay") {
+                    self.replayFrames(list.split(separator: ",").map { URL(fileURLWithPath: String($0)) })
+                }
                 #endif
                 self.subtitlesReady = true
                 self.translationInstalled = installed
@@ -196,6 +200,35 @@ final class AppModel: ObservableObject {
             await updateEngineInfo()
         }
     }
+
+    #if os(macOS)
+    /// Runs saved frames (PNG) through the subtitle pipeline as if they came from the PS5: each is shown and offered
+    /// 8 times at the reading interval so the stabilizer sees a steady line, then a few black frames clear it.
+    func replayFrames(_ urls: [URL]) {
+        guard let pipeline, streamState == .idle else { status = "Akış açıkken kareler denenemez."; return }
+        let renderer = videoView.renderer
+        append("Kareler deneniyor: \(urls.count) dosya")
+        Task.detached(priority: .userInitiated) {
+            for url in urls {
+                guard let frame = FrameStore.load(url) else {
+                    await MainActor.run { self.append("Kare okunamadı: \(url.lastPathComponent)") }
+                    continue
+                }
+                let black = FrameStore.blank(like: frame)
+                for (buffer, times) in [(frame, 8), (black, 4)] {
+                    for _ in 0..<times {
+                        if let buffer {
+                            FrameDisplay.show(buffer, on: renderer)
+                            pipeline.offer(buffer)
+                        }
+                        try? await Task.sleep(for: .seconds(SubtitlePipeline.interval + 0.05))
+                    }
+                }
+            }
+            await MainActor.run { self.append("Kareler bitti.") }
+        }
+    }
+    #endif
 
     func refreshTranslationStatus() async {
         translationInstalled = await Translator.languageInstalled()

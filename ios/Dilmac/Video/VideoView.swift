@@ -91,6 +91,29 @@ enum FrameStore {
         #endif
     }
 
+    /// A saved frame back as a pixel buffer (BGRA), as the decoder would hand it over.
+    static func load(_ url: URL) -> CVPixelBuffer? {
+        guard let image = CIImage(contentsOf: url) else { return nil }
+        let buffer = makeBuffer(Int(image.extent.width), Int(image.extent.height))
+        if let buffer { context.render(image, to: buffer) }
+        return buffer
+    }
+
+    /// A black frame of the same size (the subtitle is gone).
+    static func blank(like frame: CVPixelBuffer) -> CVPixelBuffer? {
+        let w = CVPixelBufferGetWidth(frame), h = CVPixelBufferGetHeight(frame)
+        guard let buffer = makeBuffer(w, h) else { return nil }
+        context.render(CIImage(color: .black).cropped(to: CGRect(x: 0, y: 0, width: w, height: h)), to: buffer)
+        return buffer
+    }
+
+    private static func makeBuffer(_ w: Int, _ h: Int) -> CVPixelBuffer? {
+        var buffer: CVPixelBuffer?
+        let attrs: [CFString: Any] = [kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary]
+        CVPixelBufferCreate(nil, w, h, kCVPixelFormatType_32BGRA, attrs as CFDictionary, &buffer)
+        return buffer
+    }
+
     static func save(_ pixelBuffer: CVPixelBuffer) throws -> URL {
         let image = CIImage(cvPixelBuffer: pixelBuffer)
         guard let space = CGColorSpace(name: CGColorSpace.sRGB),
