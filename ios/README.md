@@ -1,6 +1,6 @@
-# Dilmaç for iPhone (v0.1, in development)
+# Dilmaç for iPhone and Mac (v0.1, in development)
 
-The iPhone connects to the PS5 directly (Remote Play protocol, chiaki-ng), reads the subtitles, translates them and
+One app for both (the `Dilmac` target is multiplatform; see [Mac](#mac) for what differs). The iPhone connects to the PS5 directly (Remote Play protocol, chiaki-ng), reads the subtitles, translates them and
 sends them to the TV overlay app the PC version uses. The TV side does not change.
 
 ```
@@ -49,6 +49,37 @@ kept, only the account id (Keychain). `ASWebAuthenticationSession` cannot catch 
 `WKWebView` with a non-persistent data store and cancel that navigation in `decidePolicyFor`. Pairing needs the
 8-digit code from PS5 Settings → System → Remote Play → Pair Device. Keys stay in the Keychain
 (`AfterFirstUnlockThisDeviceOnly`).
+
+## Mac
+
+The same target builds a native macOS 26 app (arm64, bundle id `com.dilmac.mac`, not sandboxed):
+`xcodebuild -project ios/Dilmac.xcodeproj -scheme Dilmac -destination 'generic/platform=macOS' build`, or pick
+"My Mac" in Xcode. `build-chiaki.sh` makes the `macos-arm64` slice too. The window has the PS5 picture with the
+subtitle region outlined, status cards for the PS5, the TV and the translation engine, and the live subtitle list
+(source and time to translate per line); PSN sign-in, pairing and settings are sheets.
+
+Translation (`DilmacCore`: `LLMPrompt`, `OllamaClient`, `HedgedTranslator`, `TranslationCache`): glossary → pack →
+cache → a **local LLM through [Ollama](https://ollama.com)** → Apple Translation. It is `pc/translation.py`'s flow:
+the same prompt, checked byte for byte against the Python code (`ios/scripts/make-prompt-fixtures.py`), with the
+game's names, nicknames, preferred slang wording, the speaker, the 3 most similar pack lines and the last 3
+subtitles. If the model has not answered in 1.5 s, Apple Translation races it and the first answer is shown; the
+model's late answer is still cached. While Ollama is down or the model is not pulled, Apple Translation is used and
+the engine card says why; it is checked again every 30 s.
+
+- Setup: install Ollama (the Mac app, from ollama.com) and pull the model, by default `gemma4:e4b-it-qat` (the PC's):
+  `ollama pull gemma4:e4b-it-qat`. Settings (gear): engine (`Yerel LLM` / `Apple Çeviri`), model, Ollama address.
+  The iPhone keeps Apple Translation (`engine` = `apple`).
+- Cache: `~/Library/Application Support/Dilmac/cache.json` (the PC's format and prompt version), written every 5
+  new lines, when a session stops and when the app quits.
+- Saved frames: `~/Library/Application Support/Dilmac/frames`. Settings → "Kareleri dene..." runs PNG frames through
+  the pipeline as if they came from the PS5.
+- The Mac stays awake while a session runs (`beginActivity`, `.idleSystemSleepDisabled`).
+- Secrets: the data protection keychain when the build has a provisioning profile, else the login keychain.
+- Comparing models: `pc/.venv/bin/python pc/bench_local.py --models gemma4:e4b-it-qat,gemma4:12b --n 50` writes a
+  latency table and the translations side by side to `ios/build/bench/` (git-ignored: it has the pack's English
+  lines, never commit it).
+- Developer checks without a PS5: `open Dilmac.app --args -trial "An English line."` translates one line at start;
+  `--args -replay "/path/a.png,/path/b.png"` replays frames. Debug builds also print the log to stdout.
 
 ## iOS limits
 

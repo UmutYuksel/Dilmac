@@ -10,6 +10,10 @@ PS5 ──HDMI──> TV (sen burada oynarsın)
  └─Remote Play─> PC: pencereyi okur (Windows OCR) → bilgisayarda (OPUS-MT), Ollama ya da Gemini ile çevirir ──Wi-Fi──> TV uygulaması (üst katman)
 ```
 
+**iPhone ve Mac:** aynı altyazılar PC olmadan, doğrudan PS5'ten iPhone ya da Mac ile de alınabilir. Mac uygulaması
+argoyu koruyan yerel bir dil modeliyle (Ollama) çevirir; model geç kalırsa ya da kapalıysa Apple Çeviri devreye girer.
+Ayrıntılar: [ios/README.md](ios/README.md).
+
 ## Kolay yol: Dilmac-Setup.exe
 **Dilmac-Setup-<tarih>.exe**'yi çalıştır (yönetici izni istemez). Program `%LOCALAPPDATA%\Programs\Dilmac`'a, ayarları ve
 paketleri `%LOCALAPPDATA%\Dilmac`'a kurulur; Başlat menüsüne kısayol konur, güncelleme için yenisini üstüne kurman yeter

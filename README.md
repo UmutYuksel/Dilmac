@@ -16,6 +16,10 @@ The PC gets the picture either from the official PS Remote Play window or straig
 window, via [chiaki-ng](https://github.com/streetpea/chiaki-ng)'s library). The current tuning targets
 Grand Theft Auto VI; other games need their own layout settings (see [Other games](#other-games)).
 
+**On Apple devices:** the same subtitles from an iPhone or a Mac, straight from the PS5 (no PC). The Mac app
+translates with a local LLM (Ollama) that keeps the slang, with Apple Translation filling in when the model is late
+or down. See [ios/README.md](ios/README.md).
+
 > Status: a working personal project, being prepared for open source. The UI and the translations are Turkish; the
 > code and docs are English.
 
