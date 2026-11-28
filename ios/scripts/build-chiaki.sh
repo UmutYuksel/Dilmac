@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dilmaç (iOS): builds ChiakiBridge.xcframework = libchiaki (chiaki-ng) + pc/chiaki_bridge/bridge.c + OpenSSL
-# libcrypto + opus, as static libraries for iPhone (arm64) and the iOS Simulator (arm64).
+# libcrypto + opus, as static libraries for iPhone (arm64), the iOS Simulator (arm64) and the Mac (arm64).
 #
 # Usage (from anywhere):  ios/scripts/build-chiaki.sh
 # Needs: Xcode (license accepted), git, curl, and ios/.venv with cmake, ninja, protobuf, grpcio-tools:
@@ -15,6 +15,7 @@ OPENSSL_SHA256="603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
 OPUS_VERSION="1.5.2"
 OPUS_SHA256="65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1"
 IOS_MIN="26.0"
+MACOS_MIN="26.0"
 
 IOS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="$(cd "$IOS_DIR/.." && pwd)"
@@ -54,9 +55,9 @@ fetch "https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VER
 fetch "https://downloads.xiph.org/releases/opus/opus-$OPUS_VERSION.tar.gz" "$OPUS_SHA256" "opus-$OPUS_VERSION.tar.gz"
 
 # ---------------------------------------------------------------- per slice
-# slice: name sdk openssl-target min-version-flag
+# slice: name sdk openssl-target min-version-flag cmake-system deployment-target
 build_slice() {
-	local name="$1" sdk="$2" ossl_target="$3" min_flag="$4"
+	local name="$1" sdk="$2" ossl_target="$3" min_flag="$4" system="$5" min="$6"
 	local prefix="$BUILD/$name/prefix"
 	mkdir -p "$prefix"
 
@@ -70,8 +71,8 @@ build_slice() {
 			&& make -j"$JOBS" build_libs >/dev/null && make install_dev >/dev/null)
 	fi
 
-	local cmake_ios=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT="$sdk"
-		-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET="$IOS_MIN"
+	local cmake_ios=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME="$system" -DCMAKE_OSX_SYSROOT="$sdk"
+		-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET="$min"
 		-DCMAKE_POLICY_VERSION_MINIMUM=3.5)
 
 	# opus
@@ -97,8 +98,9 @@ build_slice() {
 		"$d/libdilmac_chiaki.a" "$prefix/lib/libcrypto.a" "$prefix/lib/libopus.a"
 }
 
-build_slice ios iphoneos ios64-xcrun "-mios-version-min=$IOS_MIN"
-build_slice sim iphonesimulator iossimulator-arm64-xcrun "-mios-simulator-version-min=$IOS_MIN"
+build_slice ios iphoneos ios64-xcrun "-mios-version-min=$IOS_MIN" iOS "$IOS_MIN"
+build_slice sim iphonesimulator iossimulator-arm64-xcrun "-mios-simulator-version-min=$IOS_MIN" iOS "$IOS_MIN"
+build_slice macos macosx darwin64-arm64-cc "-mmacosx-version-min=$MACOS_MIN" Darwin "$MACOS_MIN"
 
 # ---------------------------------------------------------------- xcframework
 HEADERS="$BUILD/headers"
@@ -115,5 +117,6 @@ rm -rf "$OUT"
 xcodebuild -create-xcframework \
 	-library "$BUILD/ios/libChiakiBridge.a" -headers "$HEADERS" \
 	-library "$BUILD/sim/libChiakiBridge.a" -headers "$HEADERS" \
+	-library "$BUILD/macos/libChiakiBridge.a" -headers "$HEADERS" \
 	-output "$OUT" >/dev/null
 echo "built: $OUT"
