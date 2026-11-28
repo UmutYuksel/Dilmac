@@ -102,6 +102,14 @@ public actor HedgedTranslator {
         }
     }
 
+    /// Asks `status` now (the app does it every 30 s for the engine card): a started Ollama is used at once, a
+    /// stopped one is skipped from now on.
+    public func refresh() async {
+        guard primary != nil, let status else { return }
+        engineState = await status()
+        downUntil = engineState == .ready ? nil : .now + recheck
+    }
+
     // MARK: - the race
 
     private enum Outcome: Sendable {

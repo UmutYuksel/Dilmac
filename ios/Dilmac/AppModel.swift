@@ -1,4 +1,5 @@
 import AVFoundation
+import DilmacCore
 import Foundation
 import SwiftUI
 #if os(iOS)
@@ -34,9 +35,27 @@ final class AppModel: ObservableObject {
     @Published var turkishInfo = ""
     @Published var deviceInfo = ""
 
+    // Translation engine (settings in UserDefaults: not secrets)
+    @Published var engine = Translator.Engine(rawValue: UserDefaults.standard.string(forKey: "engine") ?? "")
+        ?? AppModel.defaultEngine
+    @Published var localModel = UserDefaults.standard.string(forKey: "local_model") ?? "gemma4:e4b-it-qat"
+    @Published var localURL = UserDefaults.standard.string(forKey: "local_url") ?? "http://127.0.0.1:11434"
+    @Published var engineInfo = ""
+
+    #if os(macOS)
+    static let defaultEngine = Translator.Engine.llm
+    /// The LLM's translations, kept between sessions.
+    nonisolated static let cacheFile: URL? = URL.applicationSupportDirectory.appendingPathComponent("Dilmac/cache.json")
+    #else
+    static let defaultEngine = Translator.Engine.apple
+    nonisolated static let cacheFile: URL? = nil
+    #endif
+
     let videoView = VideoLayerView()
 
     private var pipeline: SubtitlePipeline?
+    private var gameData: GameData.Loaded?
+    private var engineTicks = 0
     private var stream: ChiakiStream?
     private let latest = LatestFrame()
     private var ticker: Timer?
@@ -67,18 +86,97 @@ final class AppModel: ObservableObject {
 
     /// Loads the glossary, the game pack and the English dictionary off the main thread, then builds the pipeline.
     private func loadSubtitles() {
+        let make = makeTranslator
         Task.detached(priority: .userInitiated) {
             let data = GameData.load()
-            let pipeline = SubtitlePipeline(lexicon: data.lexicon, glossary: data.glossary, pack: data.pack)
+            let translator = make(data)
+            let pipeline = SubtitlePipeline(lexicon: data.lexicon, glossary: data.glossary, pack: data.pack,
+                                            translator: translator)
             let installed = await Translator.languageInstalled()
             await MainActor.run {
                 pipeline.onEvent = { [weak self] event in Task { @MainActor in self?.handle(event) } }
+                self.gameData = data
                 self.pipeline = pipeline
+                self.warmUp(translator)
                 self.subtitlesReady = true
                 self.translationInstalled = installed
                 self.packInfo = "\(data.glossary?.gameTitle ?? "Oyun yok") · paket \(data.pack?.count ?? 0) satır"
                 if !self.tvHost.isEmpty { self.useTV(self.tvHost) }
             }
+        }
+    }
+
+    /// A translator for the current engine settings.
+    private var makeTranslator: @Sendable (GameData.Loaded) -> Translator {
+        let engine = engine, model = localModel
+        let url = URL(string: localURL) ?? URL(string: "http://127.0.0.1:11434")!
+        return { data in
+            Translator(pack: data.pack, glossary: data.glossary, engine: engine, model: model, ollamaURL: url,
+                       cacheFile: AppModel.cacheFile)
+        }
+    }
+
+    /// Saves the engine settings and swaps the translator (the old one's cache is saved).
+    func applyEngine() {
+        let d = UserDefaults.standard
+        d.set(engine.rawValue, forKey: "engine")
+        d.set(localModel.trimmingCharacters(in: .whitespaces), forKey: "local_model")
+        d.set(localURL.trimmingCharacters(in: .whitespaces), forKey: "local_url")
+        guard let data = gameData, let pipeline else { return }
+        let translator = makeTranslator(data)
+        pipeline.translator = translator
+        warmUp(translator)
+    }
+
+    /// Loads the local model now, so the first line does not wait for it.
+    private func warmUp(_ translator: Translator) {
+        engineInfo = translator.engine == .llm ? "LLM · \(translator.model) · yükleniyor..." : Self.appleInfo
+        guard translator.engine == .llm else { return }
+        Task {
+            let took = await translator.warmUp()
+            if let took {
+                append("Yerel model hazır: \(translator.model) (\(Int(took / .milliseconds(1))) ms)")
+            } else {
+                append("Yerel model kullanılamıyor (\(Self.describe(await translator.engineState, translator.model))); "
+                       + "Apple Çeviri kullanılacak.")
+            }
+            await updateEngineInfo()
+        }
+    }
+
+    private static let appleInfo = "Apple Çeviri (cihazda)"
+
+    private func updateEngineInfo(check: Bool = false) async {
+        guard let translator = pipeline?.translator else { return }
+        guard translator.engine == .llm else { engineInfo = Self.appleInfo; return }
+        if check { await translator.refresh() }
+        engineInfo = Self.describe(await translator.engineState, translator.model)
+    }
+
+    nonisolated private static func describe(_ state: OllamaStatus, _ model: String) -> String {
+        switch state {
+        case .ready: return "LLM · \(model) · hazır"
+        case .down: return "Ollama kapalı"
+        case .modelMissing(let name): return "Model yok: \(name)"
+        }
+    }
+
+    /// Translates a typed English line, to try the engine without a game.
+    func tryTranslate(_ text: String) {
+        let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !line.isEmpty, let translator = pipeline?.translator else { return }
+        Task {
+            let started = ContinuousClock.now
+            do {
+                let (tr, source) = try await translator.translate(line)
+                let ms = Double((ContinuousClock.now - started) / .microseconds(1)) / 1000
+                handle(.english(line, correction: false))
+                handle(.turkish(tr, source: source, translateMs: ms, totalMs: ms))
+                append("[deneme] \(line) → \(tr) (\(source), \(Int(ms)) ms)")
+            } catch {
+                append("Çeviri hatası: \(error.localizedDescription)")
+            }
+            await updateEngineInfo()
         }
     }
 
@@ -301,6 +399,9 @@ final class AppModel: ObservableObject {
         lastCount = count
         decodedFrames = count
         deviceInfo = Self.deviceText()
+        engineTicks += 1
+        if engineTicks % 30 == 0 { Task { await updateEngineInfo(check: true) } } // Ollama started or stopped
+        else if engineTicks % 3 == 0 { Task { await updateEngineInfo() } }
         // Connected but nothing decodes yet (the first keyframe was missed): ask for one now and then.
         if streamState == .connected, count == 0, Date().timeIntervalSince(lastKeyframeRequest) > 3 {
             lastKeyframeRequest = Date()

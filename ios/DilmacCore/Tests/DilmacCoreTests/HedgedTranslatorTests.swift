@@ -20,6 +20,12 @@ private actor FakeLLM {
     }
 }
 
+private actor StateBox {
+    var value: OllamaStatus
+    init(_ v: OllamaStatus) { value = v }
+    func set(_ v: OllamaStatus) { value = v }
+}
+
 private actor FakeApple {
     var texts: [String] = []
     func call(_ text: String) async throws -> String {
@@ -158,6 +164,25 @@ final class HedgedTranslatorTests: XCTestCase {
         XCTAssertEqual(r.source, "Apple")
         let calls = await llm.prompts.count
         XCTAssertEqual(calls, 0)
+    }
+
+    func testRefreshFollowsTheStatus() async throws {
+        let llm = FakeLLM()
+        let state = StateBox(.down)
+        let t = HedgedTranslator(pack: nil, glossary: nil, game: "", cache: TranslationCache(file: nil),
+                                 primary: { p, n in try await llm.call(p, n) }, fallback: { "A:" + $0 },
+                                 status: { await state.value }, recheck: .seconds(30))
+        await t.refresh()
+        var now = await t.engineState
+        XCTAssertEqual(now, .down)
+        var r = try await t.translate("Where is the boat?")
+        XCTAssertEqual(r.source, "Apple") // down: not asked
+        await state.set(.ready) // Ollama started: the next refresh lets the LLM in at once, not after 30 s
+        await t.refresh()
+        now = await t.engineState
+        XCTAssertEqual(now, .ready)
+        r = try await t.translate("It sank last night.")
+        XCTAssertEqual(r.source, "LLM")
     }
 
     func testWarmUpLoadsTheModel() async {

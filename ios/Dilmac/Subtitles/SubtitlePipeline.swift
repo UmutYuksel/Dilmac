@@ -52,8 +52,21 @@ final class SubtitlePipeline: @unchecked Sendable {
         set { lock.withLock { _tv = newValue } }
     }
 
+    /// Swapped when the engine settings change; the old one's cache is saved.
+    var translator: Translator {
+        get { lock.withLock { _translator } }
+        set {
+            let old = lock.withLock { () -> Translator in
+                let o = _translator
+                _translator = newValue
+                return o
+            }
+            if old !== newValue { old.save() }
+        }
+    }
+
     private let reader: SubtitleReader
-    private let translator: Translator
+    private var _translator: Translator
     private let pack: Pack?
     private let colors: [String: String]
     private let queue = DispatchQueue(label: "dilmac.subtitles", qos: .userInitiated)
@@ -65,9 +78,9 @@ final class SubtitlePipeline: @unchecked Sendable {
     private let speech: Track
     private let objective: Track?
 
-    init(lexicon: Lexicon, glossary: Glossary?, pack: Pack?) {
+    init(lexicon: Lexicon, glossary: Glossary?, pack: Pack?, translator: Translator) {
         reader = SubtitleReader(lexicon: lexicon, glossary: glossary)
-        translator = Translator(pack: pack, glossary: glossary)
+        _translator = translator
         self.pack = pack
         colors = glossary?.colors ?? [:]
         speech = Track("speech", lexicon)
@@ -90,8 +103,9 @@ final class SubtitlePipeline: @unchecked Sendable {
         }
     }
 
-    /// Removes everything from the TV (stream stopped).
+    /// Removes everything from the TV and saves the translation cache (stream stopped).
     func stop() {
+        translator.save()
         queue.async { self.tv?.send(["type": "clear"]) }
     }
 
