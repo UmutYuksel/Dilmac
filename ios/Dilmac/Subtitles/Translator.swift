@@ -22,16 +22,18 @@ final class Translator: Sendable {
 
     let engine: Engine
     let model: String
+    let ollamaURL: URL
     private let core: HedgedTranslator
     private let cache: TranslationCache
 
-    /// cacheFile: the LLM's translations on disk (nil: memory only).
-    init(pack: Pack?, glossary: Glossary?, engine: Engine, model: String, ollamaURL: URL, cacheFile: URL?) {
+    /// cache: the LLM's translations (the app keeps one for its whole life; on disk on the Mac). Not used by `apple`.
+    init(pack: Pack?, glossary: Glossary?, engine: Engine, model: String, ollamaURL: URL, cache: TranslationCache) {
         self.engine = engine
         self.model = model
+        self.ollamaURL = ollamaURL
         let apple = AppleTranslation()
         let client = engine == .llm ? OllamaClient(base: ollamaURL, model: model, session: Self.session) : nil
-        cache = TranslationCache(file: engine == .llm ? cacheFile : nil)
+        self.cache = cache
         core = HedgedTranslator(
             pack: pack, glossary: glossary, game: glossary?.gameTitle ?? pack?.gameTitle ?? "", cache: cache,
             primary: client.map { c in { @Sendable prompt, n in try await c.translate(prompt: prompt, count: n) } },

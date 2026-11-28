@@ -129,22 +129,32 @@ final class AppModel: ObservableObject {
 
     /// A translator for the current engine settings.
     private var makeTranslator: @Sendable (GameData.Loaded) -> Translator {
-        let engine = engine, model = localModel
-        let url = URL(string: localURL) ?? URL(string: "http://127.0.0.1:11434")!
+        let engine = engine, model = localModel.trimmingCharacters(in: .whitespaces)
+        let url = URL(string: localURL.trimmingCharacters(in: .whitespaces)) ?? URL(string: "http://127.0.0.1:11434")!
+        let cache = cache
         return { data in
             Translator(pack: data.pack, glossary: data.glossary, engine: engine, model: model, ollamaURL: url,
-                       cacheFile: AppModel.cacheFile)
+                       cache: cache)
         }
     }
 
-    /// Saves the engine settings and swaps the translator (the old one's cache is saved).
+    /// The LLM's translations: one instance for the app's life, so swapping the engine loses nothing.
+    private let cache = TranslationCache(file: AppModel.cacheFile)
+
+    /// Saves the engine settings and, if they changed, swaps the translator (the old one's cache is saved).
     func applyEngine() {
+        localModel = localModel.trimmingCharacters(in: .whitespaces)
+        localURL = localURL.trimmingCharacters(in: .whitespaces)
         let d = UserDefaults.standard
         d.set(engine.rawValue, forKey: "engine")
-        d.set(localModel.trimmingCharacters(in: .whitespaces), forKey: "local_model")
-        d.set(localURL.trimmingCharacters(in: .whitespaces), forKey: "local_url")
+        d.set(localModel, forKey: "local_model")
+        d.set(localURL, forKey: "local_url")
         guard let data = gameData, let pipeline else { return }
         let translator = makeTranslator(data)
+        let current = pipeline.translator
+        // Only the TV address changed: keep the translator, its context and its warm model.
+        guard translator.engine != current.engine || translator.model != current.model
+                || translator.ollamaURL != current.ollamaURL else { return }
         pipeline.translator = translator
         warmUp(translator)
     }

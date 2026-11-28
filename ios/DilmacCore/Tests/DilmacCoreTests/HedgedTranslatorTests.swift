@@ -152,6 +152,29 @@ final class HedgedTranslatorTests: XCTestCase {
         XCTAssertEqual(back, .ready)
     }
 
+    func testDownEngineKeepsPackChunksAndRemembersApple() async throws {
+        let llm = FakeLLM(), apple = FakeApple()
+        await llm.set(error: URLError(.cannotConnectToHost))
+        let t = make(llm, apple, pack: Pack(gameTitle: "x", lines: [("We go right now.", "Hemen gidiyoruz.")]))
+        for _ in 0..<2 {
+            let r = try await t.translate("We go right now. Where is the boat?")
+            XCTAssertEqual(r.text, "Hemen gidiyoruz. APPLE(Where is the boat?)") // the pack's sentence is kept
+            XCTAssertEqual(r.source, "Apple")
+        }
+        let used = await apple.texts
+        XCTAssertEqual(used, ["Where is the boat?"]) // only the missing sentence, and only once
+    }
+
+    func testLateLLMKeepsPackChunks() async throws {
+        let llm = FakeLLM()
+        await llm.set(delay: .milliseconds(600))
+        let t = make(llm, FakeApple(), pack: Pack(gameTitle: "x", lines: [("We go right now.", "Hemen gidiyoruz.")]),
+                     hedge: .milliseconds(100))
+        let r = try await t.translate("We go right now. Where is the boat?")
+        XCTAssertEqual(r.text, "Hemen gidiyoruz. APPLE(Where is the boat?)")
+        XCTAssertEqual(r.source, "Apple")
+    }
+
     func testStatusDecidesWhenDown() async throws {
         let llm = FakeLLM()
         let t = HedgedTranslator(pack: nil, glossary: nil, game: "", cache: TranslationCache(file: nil),

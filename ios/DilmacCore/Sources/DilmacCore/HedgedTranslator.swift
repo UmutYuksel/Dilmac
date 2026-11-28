@@ -5,7 +5,8 @@ import Foundation
 /// glossary line -> game pack -> per sentence chunk (pack or cache) -> the LLM for the missing chunks, with the
 /// game, names, terms, speaker, similar pack lines and the last subtitles in the prompt. If the LLM has not answered
 /// after `hedge`, Apple Translation races it and the first answer is shown; a late LLM answer is still cached. An
-/// engine that is down is skipped for `recheck`.
+/// engine that is down is skipped for `recheck`. Apple only ever gets the missing chunks, each on its own (the
+/// pack's and the cache's sentences are kept), and its answers are kept in memory, never on disk.
 ///
 /// Without a primary (the iPhone today) every missing chunk goes to Apple Translation on its own, as before.
 public actor HedgedTranslator {
@@ -30,7 +31,7 @@ public actor HedgedTranslator {
     public private(set) var engineState: OllamaStatus = .ready
     private var downUntil: ContinuousClock.Instant?
     private var inFlight: [String: Task<[String], Error>] = [:]
-    private var appleMemory: [String: String] = [:] // Apple-only mode: per chunk, never on disk
+    private var appleMemory: [String: String] = [:] // Apple's answers per chunk, never on disk
 
     public init(pack: Pack?, glossary: Glossary?, game: String, cache: TranslationCache, primary: Primary?,
                 fallback: @escaping Fallback, hedge: Duration = .milliseconds(1500),
@@ -69,14 +70,10 @@ public actor HedgedTranslator {
         var source = chunks.allSatisfy({ pack?.lookup($0) != nil }) ? "paket" : "önbellek"
         let missing = zip(chunks, outcome).compactMap { $1 == nil ? $0 : nil }
         if !missing.isEmpty {
-            let (translations, from) = try await hedged(missing, name, context, body)
+            let (translations, from) = try await hedged(missing, name, context)
             source = from
-            if from == "Apple" {
-                outcome = [translations[0]] // the whole subtitle in one piece, as the PC does with Google
-            } else {
-                var it = translations.makeIterator()
-                outcome = outcome.map { $0 ?? it.next() }
-            }
+            var it = translations.makeIterator()
+            outcome = outcome.map { $0 ?? it.next() }
         }
         let tr = Self.merge(outcome.map { $0 ?? "" })
         if tr != "-" { remember(body, tr) }
@@ -115,14 +112,14 @@ public actor HedgedTranslator {
     private enum Outcome: Sendable {
         case primary([String])
         case primaryFailed(Error)
-        case fallback(String)
+        case fallback([String])
         case fallbackFailed(Error)
         case timeout
     }
 
-    private func hedged(_ sentences: [String], _ speaker: String?, _ context: [(en: String, tr: String)],
-                        _ body: String) async throws -> ([String], String) {
-        guard let primary, await engineUp() else { return ([try await fallback(body)], "Apple") }
+    private func hedged(_ sentences: [String], _ speaker: String?,
+                        _ context: [(en: String, tr: String)]) async throws -> ([String], String) {
+        guard let primary, await engineUp() else { return (try await apple(sentences), "Apple") }
         let key = sentences.map(TextUtil.textKey).joined(separator: "\n")
         let task: Task<[String], Error>
         if let running = inFlight[key] {
@@ -146,18 +143,17 @@ public actor HedgedTranslator {
             return (out, "LLM")
         case .primaryFailed(let error):
             await failed(error)
-            return ([try await fallback(body)], "Apple")
+            return (try await apple(sentences), "Apple")
         default:
             break // late: Apple Translation races it
         }
-        let fallback = fallback
-        switch await Self.first([Self.wait(task), { do { return .fallback(try await fallback(body)) } catch {
+        switch await Self.first([Self.wait(task), { do { return .fallback(try await self.apple(sentences)) } catch {
             return .fallbackFailed(error) } }], successOnly: true) {
         case .primary(let out):
             succeeded()
             return (out, "LLM")
-        case .fallback(let tr):
-            return ([tr], "Apple")
+        case .fallback(let out):
+            return (out, "Apple")
         case .fallbackFailed(let error), .primaryFailed(let error):
             await failed(error)
             throw error
@@ -265,12 +261,23 @@ public actor HedgedTranslator {
         var outcome = chunks.map { pack?.lookup($0) ?? appleMemory[TextUtil.textKey($0)] }
         var source = outcome.allSatisfy({ $0 != nil }) ? "önbellek" : "Apple"
         if chunks.allSatisfy({ pack?.lookup($0) != nil }) { source = "paket" }
-        for i in outcome.indices where outcome[i] == nil {
-            let tr = try await fallback(chunks[i])
-            appleMemory[TextUtil.textKey(chunks[i])] = tr
-            outcome[i] = tr
-        }
+        let missing = zip(chunks, outcome).compactMap { $1 == nil ? $0 : nil }
+        var it = try await apple(missing).makeIterator()
+        outcome = outcome.map { $0 ?? it.next() }
         return (label(Self.merge(outcome.map { $0 ?? "" })), source)
+    }
+
+    /// Apple Translation for each chunk on its own; an answer it gave before comes from memory.
+    private func apple(_ chunks: [String]) async throws -> [String] {
+        var out: [String] = []
+        for chunk in chunks {
+            let key = TextUtil.textKey(chunk)
+            if let known = appleMemory[key] { out.append(known); continue }
+            let tr = try await fallback(chunk)
+            appleMemory[key] = tr
+            out.append(tr)
+        }
+        return out
     }
 
     /// merge() in pc/translation.py: "-" pieces dropped, white space collapsed; "-" if nothing is left.
