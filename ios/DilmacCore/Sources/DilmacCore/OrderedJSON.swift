@@ -9,6 +9,15 @@ enum OrderedJSON {
         return s.topLevel() ?? [:]
     }
 
+    /// The keys of the top-level object, in file order ([] if it is not an object).
+    static func topLevelKeys(_ data: Data) -> [String] {
+        var s = Scanner(bytes: [UInt8](data))
+        s.skipSpace()
+        var keys: [String] = []
+        guard s.object(each: { k, inner in keys.append(k); return inner.skipValue() }) else { return [] }
+        return keys
+    }
+
     private struct Scanner {
         let bytes: [UInt8]
         var i = 0

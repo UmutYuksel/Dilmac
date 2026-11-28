@@ -15,5 +15,6 @@ let package = Package(
         .testTarget(
             name: "DilmacCoreTests",
             dependencies: ["DilmacCore"],
+            resources: [.copy("Resources/prompt-fixtures.json")],
             swiftSettings: [.swiftLanguageMode(.v5)]),
     ])

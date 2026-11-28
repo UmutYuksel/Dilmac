@@ -1,0 +1,240 @@
+{
+ "system": "You are an experienced video game localizer translating English in-game subtitles into Turkish.\n- Write natural, spoken Turkish, the way people actually talk. Match the tone: slang stays slang and swearing stays swearing at the same strength; never soften or censor.\n- Translate the meaning, not word by word. An English idiom becomes a Turkish idiom or its plain meaning, never a literal translation. Never leave English words in the Turkish text (names excepted).\n- Characters talk to each other with informal \"sen\". Use \"siz\" only for clearly formal address (police, officials, a polite stranger) or when talking to more than one person.\n- Keep names and nicknames of people, places, brands and organizations exactly as written.\n- Interjections and sounds (Argh, Uhh, Hmm, Pssp) stay as they are or become the Turkish equivalent (Ah, Şey, Hımm, Pisi pisi).\n- The text was read from the screen by OCR: letters may be misread (0/O, l/I, rn/m) or words merged. Translate what the speaker obviously meant.\n- A string that starts in lowercase or with a connector (and, but, so) continues the previous subtitle; translate it as that continuation.\n- Short labels without a subject (objectives, menu items) are instructions to the player: use short informal imperatives (\"Arabaya bin\", not \"Arabaya binin\").\n- If a string is not real language (OCR garbage, random letters, button prompts), return \"-\" for it.\nExamples of the expected style:\n\"Oh, shit. Look at you.\" -> \"Vay anasını. Şu haline bak.\"\n\"Sucks to suck, right?\" -> \"Kendi düşen ağlamaz, değil mi?\"\n\"You're hot as fuck.\" -> \"Çok seksisin lan.\"\n\"Who are you two?\" -> \"Siz ikiniz kimsiniz?\"\n\"Livin' the dream, huh?\" -> \"Keyfin yerinde bakıyorum, ha?\"\n\"Don't sweat it.\" -> \"Kafana takma.\"\n\"You holdin'?\" -> \"Üstünde mal var mı?\"\n\"What a waste of space.\" -> \"Tam bir boş adam.\"\n\"Get the fuck outta here!\" -> \"Siktir git buradan!\"\nInput is a JSON array of strings. Reply with only a JSON array containing the same number of Turkish strings in the same order.",
+ "prompt_version": 2,
+ "glossary_json": "{\"game\": \"Test Game\", \"aliases\": [\"TG\"], \"style\": \"Argo argo kalsın; küfür yumuşatılmasın.\", \"keep\": [\"Cal\", \"Cal Hampton\", \"Lucia\", \"Vice City\"], \"address_terms\": {\"bro\": \"kardeş\", \"man\": \"lan\"}, \"terms\": {\"homie\": \"kanka\", \"bro\": \"kanka\", \"the heat\": \"aynasızlar\"}, \"nicknames\": {\"Lu\": \"Lucia\", \"Jay\": \"Jason\"}}",
+ "pack": [
+  [
+   "Cal, get the damn car.",
+   "Cal, şu lanet arabayı getir."
+  ],
+  [
+   "Get in the car, homie.",
+   "Arabaya bin kanka."
+  ],
+  [
+   "Lucia, we gotta go now.",
+   "Lucia, hemen gitmemiz lazım."
+  ],
+  [
+   "This boat is fucked.",
+   "Bu tekne sıçtı."
+  ],
+  [
+   "Okay.",
+   "Tamam."
+  ]
+ ],
+ "prompts": [
+  {
+   "sentences": [
+    "Hello."
+   ],
+   "speaker": null,
+   "history": [],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nTranslate:\n[\"Hello.\"]"
+  },
+  {
+   "sentences": [
+    "Hello."
+   ],
+   "speaker": null,
+   "history": [],
+   "names": [],
+   "game": "",
+   "glossary": false,
+   "pack": false,
+   "prompt": "Translate:\n[\"Hello.\"]"
+  },
+  {
+   "sentences": [
+    "Cal Hampton told Lucia to wait in Vice City."
+   ],
+   "speaker": null,
+   "history": [],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nKeep exactly as written (names): Cal Hampton, Lucia, Vice City\n\nTranslate:\n[\"Cal Hampton told Lucia to wait in Vice City.\"]"
+  },
+  {
+   "sentences": [
+    "Lu, get in the car."
+   ],
+   "speaker": "JASON",
+   "history": [],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nNicknames, keep them exactly as written: Lu = nickname of Lucia\n\nSpeaker: JASON\n\nSimilar lines from this game, already translated well (follow their tone and wording):\nEN: Get in the car, homie.\nTR: Arabaya bin kanka.\nEN: Cal, get the damn car.\nTR: Cal, şu lanet arabayı getir.\n\nTranslate:\n[\"Lu, get in the car.\"]"
+  },
+  {
+   "sentences": [
+    "Yo bro, where's my homie?",
+    "The heat is coming, man."
+   ],
+   "speaker": "Jay",
+   "history": [],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nPreferred Turkish wording: bro → kanka; man → lan; homie → kanka; the heat → aynasızlar\n\nSpeaker: Jay\n\nTranslate:\n[\"Yo bro, where's my homie?\", \"The heat is coming, man.\"]"
+  },
+  {
+   "sentences": [
+    "Move it."
+   ],
+   "speaker": null,
+   "history": [
+    [
+     "We gotta go.",
+     "Gitmemiz lazım."
+    ],
+    [
+     "Now?",
+     "Şimdi mi?"
+    ]
+   ],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nPrevious subtitles, for context only (do not translate them):\nEN: We gotta go.\nTR: Gitmemiz lazım.\nEN: Now?\nTR: Şimdi mi?\n\nTranslate:\n[\"Move it.\"]"
+  },
+  {
+   "sentences": [
+    "Brian, this boat is fucked."
+   ],
+   "speaker": null,
+   "history": [],
+   "names": [
+    "Brian",
+    "Cal"
+   ],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": true,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nKeep exactly as written (names): Brian\n\nSimilar lines from this game, already translated well (follow their tone and wording):\nEN: This boat is fucked.\nTR: Bu tekne sıçtı.\n\nTranslate:\n[\"Brian, this boat is fucked.\"]"
+  },
+  {
+   "sentences": [
+    "He said \"run\" / now\\.",
+    "Çabuk!\tŞimdi."
+   ],
+   "speaker": null,
+   "history": [],
+   "names": [],
+   "game": "Test Game",
+   "glossary": true,
+   "pack": false,
+   "prompt": "Game: Test Game\n\nStyle notes (Turkish): Argo argo kalsın; küfür yumuşatılmasın.\n\nTranslate:\n[\"He said \\\"run\\\" / now\\\\.\", \"Çabuk!\\tŞimdi.\"]"
+  }
+ ],
+ "replies": [
+  {
+   "raw": "[\"Bir\", \"İki\"]",
+   "n": 2,
+   "out": [
+    "Bir",
+    "İki"
+   ]
+  },
+  {
+   "raw": "```json\n[\"Bir\", \"İki\"]\n```",
+   "n": 2,
+   "out": [
+    "Bir",
+    "İki"
+   ]
+  },
+  {
+   "raw": "```\n[\"Tek\"]\n```",
+   "n": 1,
+   "out": [
+    "Tek"
+   ]
+  },
+  {
+   "raw": "{\"translations\": [\"Bir\", \"İki\"]}",
+   "n": 2,
+   "out": [
+    "Bir",
+    "İki"
+   ]
+  },
+  {
+   "raw": "{\"a\": \"Bir\", \"b\": \"İki\"}",
+   "n": 2,
+   "out": [
+    "Bir",
+    "İki"
+   ]
+  },
+  {
+   "raw": "\"Tek satır\"",
+   "n": 1,
+   "out": [
+    "Tek satır"
+   ]
+  },
+  {
+   "raw": "Tek satır, tırnaksız",
+   "n": 1,
+   "out": [
+    "Tek satır, tırnaksız"
+   ]
+  },
+  {
+   "raw": "Sure! Here it is: [\"Bir\", \"İki\"] Hope it helps.",
+   "n": 2,
+   "out": [
+    "Bir",
+    "İki"
+   ]
+  },
+  {
+   "raw": "[\"  boşluklu  \", \"-\"]",
+   "n": 2,
+   "out": [
+    "boşluklu",
+    "-"
+   ]
+  },
+  {
+   "raw": "[\"Bir\"]",
+   "n": 2,
+   "error": true
+  },
+  {
+   "raw": "[\"Bir\", \"İki\", \"Üç\"]",
+   "n": 2,
+   "error": true
+  },
+  {
+   "raw": "no json at all",
+   "n": 2,
+   "error": true
+  },
+  {
+   "raw": "",
+   "n": 1,
+   "error": true
+  },
+  {
+   "raw": "{broken",
+   "n": 1,
+   "error": true
+  },
+  {
+   "raw": "42",
+   "n": 1,
+   "error": true
+  }
+ ]
+}
