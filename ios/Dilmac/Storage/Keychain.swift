@@ -17,10 +17,34 @@ enum Keychain {
     }
 
     private static func query(_ key: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: key]
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                kSecAttrService as String: service,
+                                kSecAttrAccount as String: key]
+        #if os(macOS)
+        if dataProtection { q[kSecUseDataProtectionKeychain as String] = true }
+        #endif
+        return q
     }
+
+    #if os(macOS)
+    /// The iOS-style keychain on the Mac (it knows ThisDeviceOnly and is never synced). A build signed without a
+    /// provisioning profile is refused it (errSecMissingEntitlement); then the login keychain is used.
+    private static let dataProtection: Bool = {
+        let probe: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                    kSecAttrService as String: service + ".probe",
+                                    kSecAttrAccount as String: "probe",
+                                    kSecUseDataProtectionKeychain as String: true]
+        SecItemDelete(probe as CFDictionary)
+        var item = probe
+        item[kSecValueData as String] = Data()
+        let status = SecItemAdd(item as CFDictionary, nil)
+        SecItemDelete(probe as CFDictionary)
+        return status == errSecSuccess
+    }()
+
+    /// For the log: which keychain is in use.
+    static var kind: String { dataProtection ? "veri korumalı anahtar zinciri" : "oturum anahtar zinciri" }
+    #endif
 
     static func save<T: Encodable>(_ value: T, for key: String) throws {
         let data = try JSONEncoder().encode(value)

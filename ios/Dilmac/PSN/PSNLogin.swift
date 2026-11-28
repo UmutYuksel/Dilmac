@@ -103,21 +103,19 @@ private extension CharacterSet {
 }
 
 /// Sony's sign-in page in a throwaway web view. Calls `onResult` once with the one-time code (or an error).
-struct PSNLoginView: UIViewRepresentable {
+struct PSNLoginView {
     let onResult: (Result<String, Error>) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(onResult: onResult) }
 
-    func makeUIView(context: Context) -> WKWebView {
+    private func makeWebView(_ coordinator: Coordinator) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         let view = WKWebView(frame: .zero, configuration: config)
-        view.navigationDelegate = context.coordinator
+        view.navigationDelegate = coordinator
         view.load(URLRequest(url: PSNLogin.loginURL))
         return view
     }
-
-    func updateUIView(_ view: WKWebView, context: Context) {}
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         private let onResult: (Result<String, Error>) -> Void
@@ -142,3 +140,15 @@ struct PSNLoginView: UIViewRepresentable {
         }
     }
 }
+
+#if os(macOS)
+extension PSNLoginView: NSViewRepresentable {
+    func makeNSView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
+    func updateNSView(_ view: WKWebView, context: Context) {}
+}
+#else
+extension PSNLoginView: UIViewRepresentable {
+    func makeUIView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
+    func updateUIView(_ view: WKWebView, context: Context) {}
+}
+#endif

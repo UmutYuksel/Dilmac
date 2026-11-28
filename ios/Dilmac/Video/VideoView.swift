@@ -1,6 +1,33 @@
 import AVFoundation
 import CoreImage
 import SwiftUI
+#if os(macOS)
+import AppKit
+
+/// Shows decoded frames on an AVSampleBufferDisplayLayer (no extra copy, GPU composited).
+final class VideoLayerView: NSView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        displayLayer.videoGravity = .resizeAspect
+        displayLayer.backgroundColor = NSColor.black.cgColor
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+
+    override func makeBackingLayer() -> CALayer { AVSampleBufferDisplayLayer() }
+    var displayLayer: AVSampleBufferDisplayLayer { layer as! AVSampleBufferDisplayLayer }
+
+    /// The layer's renderer; frames can be enqueued on it from any thread (see `FrameDisplay`).
+    var renderer: AVSampleBufferVideoRenderer { displayLayer.sampleBufferRenderer }
+}
+
+struct VideoView: NSViewRepresentable {
+    let view: VideoLayerView
+    func makeNSView(context: Context) -> VideoLayerView { view }
+    func updateNSView(_ nsView: VideoLayerView, context: Context) {}
+}
+#else
 import UIKit
 
 /// Shows decoded frames on an AVSampleBufferDisplayLayer (no extra copy, GPU composited).
@@ -19,6 +46,13 @@ final class VideoLayerView: UIView {
     /// The layer's renderer; frames can be enqueued on it from any thread (see `FrameDisplay`).
     var renderer: AVSampleBufferVideoRenderer { displayLayer.sampleBufferRenderer }
 }
+
+struct VideoView: UIViewRepresentable {
+    let view: VideoLayerView
+    func makeUIView(context: Context) -> VideoLayerView { view }
+    func updateUIView(_ uiView: VideoLayerView, context: Context) {}
+}
+#endif
 
 enum FrameDisplay {
     /// Shows a decoded frame right away. Safe from any thread.
@@ -44,18 +78,17 @@ enum FrameDisplay {
     }
 }
 
-struct VideoView: UIViewRepresentable {
-    let view: VideoLayerView
-    func makeUIView(context: Context) -> VideoLayerView { view }
-    func updateUIView(_ uiView: VideoLayerView, context: Context) {}
-}
-
-/// Saves frames as PNG under Documents/frames (visible in the Files app: On My iPhone > Dilmaç).
+/// Saves frames as PNG under Documents/frames (visible in the Files app: On My iPhone > Dilmaç); on the Mac under
+/// ~/Library/Application Support/Dilmac/frames.
 enum FrameStore {
     private static let context = CIContext()
 
     static var folder: URL {
+        #if os(macOS)
+        URL.applicationSupportDirectory.appendingPathComponent("Dilmac/frames")
+        #else
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("frames")
+        #endif
     }
 
     static func save(_ pixelBuffer: CVPixelBuffer) throws -> URL {

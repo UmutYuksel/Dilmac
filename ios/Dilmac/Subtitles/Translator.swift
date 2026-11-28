@@ -56,7 +56,7 @@ actor Translator {
             guard await Self.languageInstalled() else {
                 throw Failure(message: "Türkçe çeviri dili telefonda yok. Ayarlar bölümünden indir.")
             }
-            if #available(iOS 26.4, *) {
+            if #available(iOS 26.4, macOS 26.4, *) {
                 session = TranslationSession(installedSource: Self.source, target: Self.target, preferredStrategy: .lowLatency)
             } else {
                 session = TranslationSession(installedSource: Self.source, target: Self.target)

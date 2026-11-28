@@ -1,7 +1,9 @@
 import AVFoundation
 import Foundation
 import SwiftUI
+#if os(iOS)
 import UIKit
+#endif
 
 /// State and actions of the v0.1 test screen: PSN sign-in, finding and pairing the PS5, streaming frames.
 @MainActor
@@ -40,6 +42,9 @@ final class AppModel: ObservableObject {
     private var ticker: Timer?
     private var lastCount = 0
     private var lastKeyframeRequest = Date.distantPast
+    #if os(macOS)
+    private var awake: NSObjectProtocol? // keeps the Mac from sleeping while a session runs
+    #endif
 
     init() {
         host = pairing?.host ?? ""
@@ -50,7 +55,11 @@ final class AppModel: ObservableObject {
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        #if os(iOS)
         UIDevice.current.isBatteryMonitoringEnabled = true
+        #else
+        append("Gizli bilgiler: \(Keychain.kind)")
+        #endif
         loadSubtitles()
     }
 
@@ -192,6 +201,7 @@ final class AppModel: ObservableObject {
     func connect() {
         guard let saved = pairing, streamState == .idle else { return }
         streamState = .connecting
+        stayAwake(true)
         latest.reset()
         decodedFrames = 0
         lastCount = 0
@@ -234,6 +244,7 @@ final class AppModel: ObservableObject {
         } failed: { [weak self] in
             self?.stream = nil
             self?.streamState = .idle
+            self?.stayAwake(false)
         }
     }
 
@@ -241,6 +252,7 @@ final class AppModel: ObservableObject {
         guard let stream else { return }
         self.stream = nil
         streamState = .idle
+        stayAwake(false)
         pipeline?.stop()
         Task.detached { stream.close() }
     }
@@ -249,7 +261,11 @@ final class AppModel: ObservableObject {
         guard let frame = latest.get() else { status = "Henüz kare yok."; return }
         do {
             lastSaved = try FrameStore.save(frame)
+            #if os(macOS)
+            status = "Kare kaydedildi: \(lastSaved?.path ?? "")"
+            #else
             status = "Kare kaydedildi (Dosyalar > iPhone'umda > Dilmaç > frames)."
+            #endif
         } catch {
             status = "Kare kaydedilemedi: \(error.localizedDescription)"
         }
@@ -266,6 +282,7 @@ final class AppModel: ObservableObject {
         case .ended(let reason):
             stream = nil
             streamState = .idle
+            stayAwake(false)
             var text = "Akış bitti: \(reason)"
             if reason.lowercased().contains("remote"), reason.lowercased().contains("use") {
                 text += " (başka bir Uzaktan Oynatma bağlantısı açıksa kapat)"
@@ -291,7 +308,19 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Phone heat and battery, to judge whether it can run for a whole session.
+    private func stayAwake(_ on: Bool) {
+        #if os(macOS)
+        if on, awake == nil {
+            awake = ProcessInfo.processInfo.beginActivity(options: [.idleSystemSleepDisabled, .userInitiated],
+                                                          reason: "Dilmaç altyazı")
+        } else if !on, let token = awake {
+            ProcessInfo.processInfo.endActivity(token)
+            awake = nil
+        }
+        #endif
+    }
+
+    /// Phone heat and battery, to judge whether it can run for a whole session (on the Mac only the heat).
     private static func deviceText() -> String {
         let heat: String
         switch ProcessInfo.processInfo.thermalState {
@@ -301,10 +330,14 @@ final class AppModel: ObservableObject {
         case .critical: heat = "çok sıcak"
         @unknown default: heat = "?"
         }
+        #if os(iOS)
         let device = UIDevice.current
         let level = device.batteryLevel >= 0 ? "%\(Int(device.batteryLevel * 100))" : "?"
         let charging = device.batteryState == .charging || device.batteryState == .full ? " (şarjda)" : ""
         return "Isı: \(heat) · Pil: \(level)\(charging)"
+        #else
+        return "Isı: \(heat)"
+        #endif
     }
 
     private func append(_ line: String) {

@@ -40,7 +40,9 @@ struct ContentView: View {
                 PSNLoginView { model.finishLogin($0) }
                     .ignoresSafeArea(edges: .bottom)
                     .navigationTitle("PSN girişi")
+                    #if os(iOS)
                     .navigationBarTitleDisplayMode(.inline)
+                    #endif
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Vazgeç") { model.showLogin = false }
@@ -110,7 +112,7 @@ struct ContentView: View {
             }
             HStack {
                 TextField("TV IP adresi (boşsa ağda aranır)", text: $model.tvHost)
-                    .keyboardType(.decimalPad)
+                    .decimalPad()
                 Button("TV'yi bul") { model.findTV() }
             }
             if let connected = model.tvConnected {
@@ -148,14 +150,33 @@ struct ContentView: View {
             } else {
                 HStack {
                     TextField("IP adresi (boşsa ağda aranır)", text: $model.host)
-                        .keyboardType(.decimalPad)
+                        .decimalPad()
                     Button("Bul") { model.findPS5() }
                 }
                 TextField("8 haneli kod (Ayarlar > Sistem > Uzaktan Oynatma > Cihazı Bağla)", text: $model.pin)
-                    .keyboardType(.numberPad)
+                    .numberPad()
                 Button("Eşle") { model.pair() }
                     .disabled(model.account == nil)
             }
         }
+    }
+}
+
+private extension View {
+    /// The number pad on the iPhone; nothing on the Mac.
+    func decimalPad() -> some View {
+        #if os(iOS)
+        keyboardType(.decimalPad)
+        #else
+        self
+        #endif
+    }
+
+    func numberPad() -> some View {
+        #if os(iOS)
+        keyboardType(.numberPad)
+        #else
+        self
+        #endif
     }
 }

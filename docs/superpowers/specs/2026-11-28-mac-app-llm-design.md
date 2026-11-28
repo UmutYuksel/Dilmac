@@ -30,8 +30,9 @@ Catalyst (looks foreign on the Mac, chiaki still needs its own slice, later limi
 
 ## Architecture
 
-- New target **DilmacMac** in `ios/Dilmac.xcodeproj`: macOS 26, arm64 only, same bundle id family
-  (`com.dilmac.mac`), same team id from `ios/Config/Local.xcconfig`.
+- The existing **Dilmac** target in `ios/Dilmac.xcodeproj` becomes multiplatform (iOS + macOS over the same
+  synchronized `ios/Dilmac/` folder; decided while planning, far fewer hand edits than a second target): macOS 26,
+  arm64 only, bundle id `com.dilmac.mac` on the Mac, same team id from `ios/Config/Local.xcconfig`.
 - Shared as is: `AppModel`, `Chiaki`, `PS5Discovery`, `Keychain`, `Models`, `GameData`, `RegionImage`,
   `SubtitlePipeline`, `SubtitleReader`, `Translator`, `TVLink`, `H264Decoder`, all of `DilmacCore`.
 - Platform specific, split with `#if os(macOS)` (or a `+Mac.swift` file where the difference is larger than a few
@@ -48,7 +49,8 @@ Catalyst (looks foreign on the Mac, chiaki still needs its own slice, later limi
   target `darwin64-arm64-cc`, `-mmacosx-version-min=26.0`), and adds it to the same `ChiakiBridge.xcframework`. The
   `ios_stubs.c` stubs (holepunch, AIA) are used on macOS too.
 - Secrets stay in the Keychain (`AfterFirstUnlockThisDeviceOnly` is valid on macOS for the data protection keychain;
-  use `kSecUseDataProtectionKeychain`), never in the repo.
+  use `kSecUseDataProtectionKeychain`), never in the repo. A build signed without a provisioning profile is refused
+  the data protection keychain; the app then uses the login keychain.
 
 ## Translation
 
