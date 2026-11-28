@@ -110,6 +110,23 @@ public final class Pack: @unchecked Sendable {
         return best
     }
 
+    /// The n most similar pairs (content word overlap, cosine), the same line left out. Port of pc/pack.py
+    /// similar(): ties go to the line added first. Hashed lines have no English and are never examples.
+    public func similar(_ text: String, n: Int = 3, threshold: Double = 0.3) -> [(en: String, tr: String)] {
+        let words = Self.contentWords(text)
+        guard !words.isEmpty else { return [] }
+        var counter: [Int: Int] = [:]
+        for w in words { for i in wordIndex[w] ?? [] { counter[i, default: 0] += 1 } }
+        let k = TextUtil.textKey(text)
+        var scored: [(score: Double, i: Int)] = []
+        for (i, common) in counter {
+            let score = Double(common) / (Double(words.count) * Double(pairs[i].words.count)).squareRoot()
+            if score >= threshold && TextUtil.textKey(pairs[i].en) != k { scored.append((score, i)) }
+        }
+        scored.sort { $0.score != $1.score ? $0.score > $1.score : $0.i < $1.i }
+        return scored.prefix(n).map { (pairs[$0.i].en, pairs[$0.i].tr) }
+    }
+
     private static let trailing = Rx(#"[.!?…]+$"#)
 
     /// The trailing punctuation of the pack's translation follows the read line.
@@ -130,7 +147,17 @@ public struct Glossary: Sendable {
     public let nicknames: [String: String]
     public let colors: [String: String]
     public let screen: [String: Double]
+    /// Style notes and examples for the LLM ("style").
+    public let style: String
+    /// "address_terms" and "terms" merged ("terms" wins), in file order as Python's {**address_terms, **terms}.
+    private let termPairs: [(en: String, tr: String)]
+    private let nicknamePairs: [(nick: String, name: String)]
     private let lines: [String: String]
+
+    /// Preferred wordings: "address_terms" merged with "terms" ("terms" wins on a clash).
+    public var terms: [String: String] {
+        Dictionary(termPairs.map { ($0.en, $0.tr) }, uniquingKeysWith: { _, b in b })
+    }
 
     public init(data: Data) throws {
         let o = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -140,12 +167,50 @@ public struct Glossary: Sendable {
         nicknames = o["nicknames"] as? [String: String] ?? [:]
         colors = o["colors"] as? [String: String] ?? [:]
         screen = (o["screen"] as? [String: Any] ?? [:]).compactMapValues { ($0 as? NSNumber)?.doubleValue }
+        style = o["style"] as? String ?? ""
+        let order = OrderedJSON.memberKeys(data)
+        func ordered(_ key: String) -> [(String, String)] {
+            let dict = o[key] as? [String: String] ?? [:]
+            let keys = (order[key] ?? []).filter { dict[$0] != nil }
+            // Keys the scan missed (should not happen) go last, sorted, so nothing is lost.
+            let rest = dict.keys.filter { !keys.contains($0) }.sorted()
+            var seen = Set<String>()
+            return (keys + rest).compactMap { k in seen.insert(k).inserted ? (k, dict[k]!) : nil }
+        }
+        var merged: [(en: String, tr: String)] = ordered("address_terms").map { ($0.0, $0.1) }
+        for (en, tr) in ordered("terms") {
+            if let at = merged.firstIndex(where: { $0.en == en }) { merged[at].tr = tr } else { merged.append((en, tr)) }
+        }
+        termPairs = merged
+        nicknamePairs = ordered("nicknames").map { ($0.0, $0.1) }
         let raw = o["lines"] as? [String: String] ?? [:]
         lines = Dictionary(raw.map { (TextUtil.textKey($0.key), $0.value) }, uniquingKeysWith: { a, _ in a })
     }
 
     /// Words the English lexicon should know for this game (names, title, nicknames).
     public var lexiconExtras: [String] { keepNames + names + Array(nicknames.keys) }
+
+    /// The phrase occurs as a whole word or words (not inside another word, not before an apostrophe), any case.
+    public static func occurs(_ phrase: String, in text: String) -> Bool {
+        wordRx(phrase, [.caseInsensitive]).test(text)
+    }
+
+    private static func wordRx(_ phrase: String, _ options: NSRegularExpression.Options) -> Rx {
+        Rx(#"(?<![\w'])"# + NSRegularExpression.escapedPattern(for: phrase) + #"(?![\w'])"#, options)
+    }
+
+    /// Names to keep and preferred translations that occur in this text. A short name inside a longer one that is
+    /// there too is left out ("Cal" when "Cal Hampton" is there).
+    public func relevant(_ text: String) -> (names: [String], terms: [(en: String, tr: String)]) {
+        let found = keepNames.filter { Self.occurs($0, in: text) }
+        let names = found.filter { a in !found.contains { b in a != b && b.contains(a) } }
+        return (names, termPairs.filter { Self.occurs($0.en, in: text) })
+    }
+
+    /// Nicknames that occur in this text; case matters ("Lu", not "lu").
+    public func nicknameMap(_ text: String) -> [(nick: String, name: String)] {
+        nicknamePairs.filter { Self.wordRx($0.nick, []).test(text) }
+    }
 
     /// A ready line from the glossary; the trailing punctuation follows the source.
     public func ready(_ text: String) -> String? {

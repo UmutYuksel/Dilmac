@@ -53,6 +53,64 @@ final class PackTests: XCTestCase {
     }
 }
 
+/// The parts of the glossary and the pack that the LLM prompt uses (pc/translation.py Glossary, pc/pack.py similar).
+final class PromptDataTests: XCTestCase {
+    private func glossary(_ json: String) throws -> Glossary { try Glossary(data: Data(json.utf8)) }
+    private func pairs(_ p: [(en: String, tr: String)]) -> [String] { p.map { "\($0.en)=\($0.tr)" } }
+
+    func testRelevantNamesAndTerms() throws {
+        let g = try glossary(#"{"game": "x", "keep": ["Cal", "Cal Hampton", "Lucia"], "terms": {"homie": "kanka"}}"#)
+        let r = g.relevant("Cal Hampton told the homie")
+        XCTAssertEqual(r.names, ["Cal Hampton"])
+        XCTAssertEqual(pairs(r.terms), ["homie=kanka"])
+        let none = g.relevant("calhampton")
+        XCTAssertEqual(none.names, [])
+        XCTAssertTrue(none.terms.isEmpty)
+    }
+
+    func testTermsKeepFileOrderAndTermsWin() throws {
+        let g = try glossary(#"{"game": "x", "style": "Argo kalsın.", "address_terms": {"man": "lan", "bro": "kardeş"}, "terms": {"zebra": "z", "bro": "kanka", "apple": "a"}}"#)
+        XCTAssertEqual(g.style, "Argo kalsın.")
+        XCTAssertEqual(g.terms, ["man": "lan", "bro": "kanka", "zebra": "z", "apple": "a"])
+        XCTAssertEqual(pairs(g.relevant("apple zebra bro man").terms), ["man=lan", "bro=kanka", "zebra=z", "apple=a"])
+    }
+
+    func testNicknameMapIsCaseSensitive() throws {
+        let g = try glossary(#"{"game": "x", "nicknames": {"Lu": "Lucia", "Jay": "Jason"}}"#)
+        XCTAssertEqual(g.nicknameMap("Jay and Lu, wait").map { "\($0.nick)=\($0.name)" }, ["Lu=Lucia", "Jay=Jason"])
+        XCTAssertTrue(g.nicknameMap("lu wait").isEmpty)
+        XCTAssertTrue(Glossary.occurs("lu", in: "Lu, wait"))
+        XCTAssertFalse(Glossary.occurs("Lu", in: "Lu's"))
+    }
+
+    func testSimilar() {
+        let p = Pack(gameTitle: "x", lines: packLines)
+        let s = p.similar("A lot of fucking cops here, Bill.")
+        XCTAssertEqual(s.first?.en, "A lot of fucking guys here, Bill.")
+        XCTAssertEqual(s.first?.tr, "Burada bir sürü adam var lan, Bill.")
+        XCTAssertFalse(p.similar("A lot of fucking guys here, Bill.").contains { $0.en == "A lot of fucking guys here, Bill." })
+        XCTAssertTrue(p.similar("zzz").isEmpty)
+    }
+
+    func testSimilarOrderAndThreshold() {
+        let p = Pack(gameTitle: "x", lines: [
+            ("Drive the boat now.", "a"), ("Drive the car now.", "b"), ("Drive fast.", "c"), ("Boat party tonight.", "d"),
+        ])
+        // Scores: 1.0, 0.5, 0.5 (a tie: the earlier line first), 0.41.
+        XCTAssertEqual(pairs(p.similar("Drive the boat!")), ["Drive the boat now.=a", "Drive the car now.=b", "Drive fast.=c"])
+        XCTAssertEqual(pairs(p.similar("Drive the boat!", n: 4)).last, "Boat party tonight.=d")
+        XCTAssertEqual(pairs(p.similar("Drive the boat!", n: 1)), ["Drive the boat now.=a"])
+        XCTAssertEqual(pairs(p.similar("Drive the boat!", n: 4, threshold: 0.45)).count, 3)
+        XCTAssertEqual(pairs(p.similar("Drive the boat!", threshold: 0.6)), ["Drive the boat now.=a"])
+    }
+
+    func testSimilarOnHashedPackIsEmpty() throws {
+        let p = Pack(gameTitle: "x")
+        try p.add(file: Data(#"{"game": "x", "format": "hashed-v1", "lines": {}, "h": {"0123456789abcdef0123": "Karavanda buluşalım."}}"#.utf8))
+        XCTAssertEqual(p.similar("Meet me at the trailer.").count, 0)
+    }
+}
+
 /// The real files the app ships (pc/packs, pc/glossary).
 final class GameDataTests: XCTestCase {
     private static let repo = URL(fileURLWithPath: #filePath)
