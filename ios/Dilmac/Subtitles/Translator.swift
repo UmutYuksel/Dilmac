@@ -82,12 +82,17 @@ actor AppleTranslation {
             guard await Translator.languageInstalled() else {
                 throw Translator.Failure(message: "Türkçe çeviri dili cihazda yok. Ayarlar bölümünden indir.")
             }
-            if #available(iOS 26.4, macOS 26.4, *) {
+            #if os(iOS)
+            if #available(iOS 26.4, *) {
                 session = TranslationSession(installedSource: Translator.source, target: Translator.target,
                                              preferredStrategy: .lowLatency)
             } else {
                 session = TranslationSession(installedSource: Translator.source, target: Translator.target)
             }
+            #else
+            // The Mac has no low latency model for the pair ("notInstalled"); the default model works.
+            session = TranslationSession(installedSource: Translator.source, target: Translator.target)
+            #endif
         }
         do {
             return try await session!.translate(text).targetText

@@ -12,8 +12,8 @@ struct ContentView: View {
             Form {
                 videoSection
                 subtitleSection
-                accountSection
-                ps5Section
+                AccountSection(model: model)
+                PS5Section(model: model)
                 if !model.status.isEmpty {
                     Section("Durum") { Text(model.status).font(.callout) }
                 }
@@ -126,8 +126,13 @@ struct ContentView: View {
         }
         .buttonStyle(.borderless)
     }
+}
 
-    private var accountSection: some View {
+/// PSN sign-in (shared by the iPhone screen and the Mac's sheet).
+struct AccountSection: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
         Section("PSN hesabı") {
             if let account = model.account {
                 LabeledContent("Hesap", value: account.onlineID)
@@ -140,8 +145,13 @@ struct ContentView: View {
             }
         }
     }
+}
 
-    private var ps5Section: some View {
+/// Finding and pairing the PS5 (shared by the iPhone screen and the Mac's sheet).
+struct PS5Section: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
         Section("PS5") {
             if let pairing = model.pairing {
                 LabeledContent("Eşli", value: pairing.name)
@@ -162,7 +172,7 @@ struct ContentView: View {
     }
 }
 
-private extension View {
+extension View {
     /// The number pad on the iPhone; nothing on the Mac.
     func decimalPad() -> some View {
         #if os(iOS)

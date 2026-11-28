@@ -9,7 +9,7 @@ import QuartzCore
 final class SubtitlePipeline: @unchecked Sendable {
     enum Event {
         case english(String, correction: Bool)
-        case turkish(String, source: String, translateMs: Double, totalMs: Double)
+        case turkish(String, english: String, source: String, translateMs: Double, totalMs: Double)
         case cleared
         case log(String)
     }
@@ -66,6 +66,8 @@ final class SubtitlePipeline: @unchecked Sendable {
     }
 
     private let reader: SubtitleReader
+    /// Where the subtitles are read in the picture (0-1, top left origin).
+    var region: Layout { reader.layout }
     private var _translator: Translator
     private let pack: Pack?
     private let colors: [String: String]
@@ -229,7 +231,7 @@ final class SubtitlePipeline: @unchecked Sendable {
         show(track, tr, current ? Self.maxShow : readingTime(tr), isNew: isNew)
         let label = track.name == "speech" ? (current ? "[TR]" : "[TR geç]") : "[Görev TR]"
         emit(.log("\(label) \(tr)   (çeviri \(Int(translateMs)) ms, ilk görülmeden \(Int(total)) ms, \(source))"))
-        if track.name == "speech" { emit(.turkish(tr, source: source, translateMs: translateMs, totalMs: total)) }
+        if track.name == "speech" { emit(.turkish(tr, english: text, source: source, translateMs: translateMs, totalMs: total)) }
     }
 
     // MARK: TV

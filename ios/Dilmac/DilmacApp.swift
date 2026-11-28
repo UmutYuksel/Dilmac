@@ -12,8 +12,11 @@ struct DilmacApp: App {
                 // iOS suspends apps in the background: Dilmaç has to stay in front with the screen on.
                 .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
             #else
-            ContentView() // the Mac stays awake while a session runs (AppModel.connect)
+            MacContentView() // the Mac stays awake while a session runs (AppModel.connect)
             #endif
         }
+        #if os(macOS)
+        .defaultSize(width: 1280, height: 780)
+        #endif
     }
 }

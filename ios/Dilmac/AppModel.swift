@@ -4,6 +4,8 @@ import Foundation
 import SwiftUI
 #if os(iOS)
 import UIKit
+#else
+import AppKit
 #endif
 
 /// State and actions of the v0.1 test screen: PSN sign-in, finding and pairing the PS5, streaming frames.
@@ -41,6 +43,10 @@ final class AppModel: ObservableObject {
     @Published var localModel = UserDefaults.standard.string(forKey: "local_model") ?? "gemma4:e4b-it-qat"
     @Published var localURL = UserDefaults.standard.string(forKey: "local_url") ?? "http://127.0.0.1:11434"
     @Published var engineInfo = ""
+    /// The last translated lines, newest first (the Mac window's list).
+    @Published var lines: [SubtitleLine] = []
+    /// The subtitle region in the picture (0-1, top left origin), outlined on the Mac.
+    @Published var regionBox: CGRect?
 
     #if os(macOS)
     static let defaultEngine = Translator.Engine.llm
@@ -78,6 +84,11 @@ final class AppModel: ObservableObject {
         UIDevice.current.isBatteryMonitoringEnabled = true
         #else
         append("Gizli bilgiler: \(Keychain.kind)")
+        // The LLM's cache is written every 5 lines and on stop; also when the app quits.
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pipeline?.translator.save() }
+        }
         #endif
         loadSubtitles()
     }
@@ -97,7 +108,13 @@ final class AppModel: ObservableObject {
                 pipeline.onEvent = { [weak self] event in Task { @MainActor in self?.handle(event) } }
                 self.gameData = data
                 self.pipeline = pipeline
+                let r = pipeline.region
+                self.regionBox = CGRect(x: r.left, y: r.top, width: r.width, height: r.height)
                 self.warmUp(translator)
+                #if os(macOS)
+                // Developer check without a PS5: open Dilmac.app --args -trial "An English line."
+                if let line = UserDefaults.standard.string(forKey: "trial") { self.tryTranslate(line) }
+                #endif
                 self.subtitlesReady = true
                 self.translationInstalled = installed
                 self.packInfo = "\(data.glossary?.gameTitle ?? "Oyun yok") · paket \(data.pack?.count ?? 0) satır"
@@ -171,7 +188,7 @@ final class AppModel: ObservableObject {
                 let (tr, source) = try await translator.translate(line)
                 let ms = Double((ContinuousClock.now - started) / .microseconds(1)) / 1000
                 handle(.english(line, correction: false))
-                handle(.turkish(tr, source: source, translateMs: ms, totalMs: ms))
+                handle(.turkish(tr, english: line, source: source, translateMs: ms, totalMs: ms))
                 append("[deneme] \(line) → \(tr) (\(source), \(Int(ms)) ms)")
             } catch {
                 append("Çeviri hatası: \(error.localizedDescription)")
@@ -188,8 +205,10 @@ final class AppModel: ObservableObject {
         switch event {
         case .english(let text, _):
             english = text
-        case .turkish(let text, let source, let translateMs, let totalMs):
+        case .turkish(let text, let en, let source, let translateMs, let totalMs):
             turkish = text
+            lines.insert(SubtitleLine(english: en, turkish: text, source: source, translateMs: Int(translateMs)), at: 0)
+            if lines.count > 50 { lines.removeLast(lines.count - 50) }
             turkishInfo = "\(source) · çeviri \(Int(translateMs)) ms · ilk görülmeden \(Int(totalMs)) ms"
         case .cleared:
             break
@@ -444,6 +463,10 @@ final class AppModel: ObservableObject {
     private func append(_ line: String) {
         let stamp = Date().formatted(date: .omitted, time: .standard)
         log.append("\(stamp) \(line)")
+        #if DEBUG
+        print("\(stamp) \(line)") // seen when the app is run from Xcode or a terminal
+        fflush(stdout)
+        #endif
         if log.count > 300 { log.removeFirst(log.count - 300) }
     }
 
@@ -486,6 +509,15 @@ final class AppModel: ObservableObject {
         case .other(let head): return "\(s.name) (\(s.ip)) yanıt verdi: \(head)"
         }
     }
+}
+
+struct SubtitleLine: Identifiable {
+    let id = UUID()
+    let time = Date()
+    let english: String
+    let turkish: String
+    let source: String
+    let translateMs: Int
 }
 
 /// The latest decoded frame and a frame counter, shared between chiaki's video thread and the UI.
